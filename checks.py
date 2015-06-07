@@ -8,17 +8,21 @@
 
 import pyfits
 import numpy as np
+from SurfMessages import *
 
-def check_maps(img,expmap,bkgmap):
-  size_img = np.size(img['IMAGE'].data)
+def get_size(img):
+  return np.size(img[0].data)
+
+# Check that counts, exposure, and background maps have the same size
+def check_map_size(img,expmap,bkgmap):
   if expmap != None:
-    size_exp = np.size(expmap['IMAGE'].data)
-    if size_exp != size_img:
-      'Catastrophic failure!'
+    if get_size(img) != get_size(expmap):
+      raise SizeError('Count map and exposure map should have the same size.')
   if bkgmap != None:
-    size_bkg = np.size(bkgmap['IMAGE'].data)
-    if size_bkg != size_img:
-      'Catastrophic failure!'
+    if get_size(img) != get_size(bkgmap):
+      raise SizeError('Count map and background map should have the same size.')
+
+
 
 
 
