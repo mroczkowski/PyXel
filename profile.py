@@ -8,7 +8,7 @@
 
 import pyfits
 import numpy as np
-from checks import check_maps, check_shape, check_params
+from checks import check_map_size, check_shape, check_params
 
 def profile(img,expmap,bkgmap,shape,params):
   check_maps(img,expmap,bkgmap)
