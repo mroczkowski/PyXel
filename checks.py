@@ -33,6 +33,9 @@ def check_params(shape, params):
     if params[0] < 0. or params[0] > 360. or params[1] < -180. or params[1] > 180.:
       raise RegionError('Incorrect region parameters. Circles should have 0 <= RA <= 180 and -180 <= DEC <= 180.')
   elif shape.lower() == 'panda':
-  elif shape.lower() == 'ellpanda':
+    if params[0] < 0. or params[0] > 360. or params[1] < -180. or params[1] > 180. or params[2] < 0. or params[2] > 360. or params[3] < 0. or params[3] > 360. or params[4] > params[5]:
+      raise RegionError('Incorrect region parameters. Panda should have 0 <= RA <= 180, -180 <= DEC <= 180, 0 <= ANGLE1 <= 360, 0 <= ANGLE2 <= 360, and R_INNER < R_OUTER.') 
+  elif shape.lower() == 'epanda':
+
 
 
