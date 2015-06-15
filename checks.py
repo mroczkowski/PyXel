@@ -36,6 +36,8 @@ def check_params(shape, params):
     if params[0] < 0. or params[0] > 360. or params[1] < -180. or params[1] > 180. or params[2] < 0. or params[2] > 360. or params[3] < 0. or params[3] > 360. or params[4] > params[5]:
       raise RegionError('Incorrect region parameters. Panda should have 0 <= RA <= 180, -180 <= DEC <= 180, 0 <= ANGLE1 <= 360, 0 <= ANGLE2 <= 360, and R_INNER < R_OUTER.') 
   elif shape.lower() == 'epanda':
+    if params[0] < 0. or params[0] > 360. or params[1] < -180. or params[1] > 180. or params[2] < 0. or params[2] > 360. or params[3] < 0. or params[3] > 360. or params[4] < params[5] or params[6] > params[4]. or params[7] < 0. or params[7] > 360.:
+      raise RegionError('Incorrect region parameters. Elliptical panda should have 0 <= RA <= 180, -180 <= DEC <= 180, 0 <= ANGLE1 <= 360, 0 <= ANGLE2 <= 360, R_MIN_INNER < R_MAJ_OUTER, R_MAJ_INNER < R_MAJ_OUTER, and 0 <= ROTANGLE <= 360.')
 
 
 
