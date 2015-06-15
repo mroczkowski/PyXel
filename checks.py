@@ -30,14 +30,14 @@ def check_shape(shape):
 
 def check_params(shape, params):
   if shape.lower() == 'circle':
-    if params[0] < 0. or params[0] > 360. or params[1] < -90. or params[1] > 90.:
+    if not 0 <= params[0] <= 360 or not -90 <= params[1] <= 90:
       raise RegionError('Incorrect region parameters. Circles should have 0 <= RA <= 360 and -90 <= DEC <= 90.')
   elif shape.lower() == 'panda':
-    if params[0] < 0. or params[0] > 360. or params[1] < -90. or params[1] > 90. or params[2] < 0. or params[2] > 360. or params[3] < 0. or params[3] > 360. or params[4] > params[5]:
+    if not 0 <= params[0] <= 360 or not -90 <= params[1] <= 90 or not 0 <= params[2] <= 360 or not 0 <= params[3] <= 360 or not params[4] > params[5]:
       raise RegionError('Incorrect region parameters. Panda should have 0 <= RA <= 360, -90 <= DEC <= 90, 0 <= ANGLE1 <= 360, 0 <= ANGLE2 <= 360, and R_INNER < R_OUTER.') 
   elif shape.lower() == 'epanda':
-    if params[0] < 0. or params[0] > 360. or params[1] < -90. or params[1] > 90. or params[2] < 0. or params[2] > 360. or params[3] < 0. or params[3] > 360. or params[4] < params[5] or params[6] > params[4]. or params[7] < 0. or params[7] > 360.:
-      raise RegionError('Incorrect region parameters. Elliptical panda should have 0 <= RA <= 90, -90 <= DEC <= 90, 0 <= ANGLE1 <= 360, 0 <= ANGLE2 <= 360, R_MIN_INNER < R_MAJ_OUTER, R_MAJ_INNER < R_MAJ_OUTER, and 0 <= ROTANGLE <= 360.')
+    if not 0 <= params[0] <= 360 or not -90 <= params[1] <= 90 or not 0 <= params[2] <= 360 or not 0 <= params[3] <= 360 or not params[4] < params[5] or not params[6] > params[4] or not 0 <= params[7] <= 360:
+      raise RegionError('Incorrect region parameters. Elliptical panda should have 0 <= RA <= 360, -90 <= DEC <= 90, 0 <= ANGLE1 <= 360, 0 <= ANGLE2 <= 360, R_MIN_INNER < R_MAJ_OUTER, R_MAJ_INNER < R_MAJ_OUTER, and 0 <= ROTANGLE <= 360.')
 
 
 
