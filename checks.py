@@ -25,8 +25,8 @@ def check_map_size(img,expmap,bkgmap):
 # Check that the region in which the profile is 
 # created is a valid region. 
 def check_shape(shape):
-  if shape.lower() not in ('circle', 'panda', 'ellpanda'):
-    raise ShapeError("Invalid region. Valid region are 'circle', 'panda', and 'ellpanda'.")
+  if shape.lower() not in ('circle', 'panda', 'epanda'):
+    raise ShapeError("Invalid region. Valid region are 'circle', 'panda', and 'epanda'.")
 
 def check_params(shape, params):
   if shape.lower() == 'circle':
