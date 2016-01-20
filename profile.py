@@ -5,74 +5,209 @@
 # Create surface brightness profile.
 #
 
+from math import floor, ceil
 import pyfits
 import numpy as np
 from matplotlib.path import Path
+from SurfMessages import ErrorMessages
 
-# If the region is a polygon, get the coordinates of the corners.
-# This needs to be done separately for box and polygon regions because of
-# the way they are defined in DS9.
-def get_corners(region):
-    region_shape = region[0]
-    if region_shape == 'box':
-        x0 = region[1][0]
-        y0 = region[1][1]
-        width = region[1][2]
-        height = region[1][3]
-        angle = -region[1][4] / 180. * np.pi
-        corners = [[ - height/2, - width/2], \
-                   [ height/2, - width/2], \
-                   [ height/2, width/2], \
-                   [ - height/2, width/2]]
-        for i in range(4):
-            x = corners[i][0]
-            y = corners[i][1]
-            corners[i][0] = np.cos(angle) * x - np.sin(angle) * y + y0 - 1
-            corners[i][1] = np.sin(angle) * x + np.cos(angle) * y + x0 - 1
-    return corners
+def rotate_point(x0, y0, x, y, angle):
+    """Rotate point (x,y) counter-clockwise around (x0,y0)."""
+    x_rot = x0 + x * np.cos(angle) - y * np.sin(angle)
+    y_rot = y0 + x * np.sin(angle) + y * np.cos(angle)
+    return (x_rot, y_rot)
 
-# Return an array containing the coordinates of the points inside
-# the region of interest.
-# Should points on the edges be returned as interior points? There could be
-# two adjacent regions that would then have common pixels.
-def interior_pixels(img, region):
-    region_shape = region[0]
-    img_width, img_height = np.shape(img)
-    if region_shape == 'box' or region_shape == 'polygon':
-        corners = get_corners(region)
+class Box:
+    """Generate box object."""
+    def __init__(self, x0, y0, width, height, angle):
+       self.x0 = x0
+       self.y0 = y0
+       self.width = width
+       self.height = height
+       self.angle = angle
+
+    @classmethod
+    def from_params(cls, params):
+        """Make box parameters Python-compliant.
+
+        Because DS9 pixels are 1-based, while Python arrays are 0-based, 1 is
+        subtracted from the coordinates of the box center. The rotation angle
+        of the box is also converted from degrees (as defined in DS9) to radians.
+        """
+        angle = params[4] * np.pi / 180.
+        return Box(params[0] - 1, params[1] - 1, params[2], params[3], angle)
+
+    def get_corners(self):
+        """Get the coordinates of the corners of a box."""
+        corners = [(-self.width/2, -self.height/2),
+                   (-self.width/2, self.height/2),
+                   (self.width/2, self.height/2),
+                   (self.width/2, -self.height/2)]
+        rotated_corners = [rotate_point(self.x0, self.y0, x, y, self.angle)
+            for x, y in corners]
+        print(rotated_corners)
+        return rotated_corners
+
+    # Return an array containing the coordinates of the points inside
+    # the region of interest.
+    def interior_pixels(self):
+        """Find the pixels inside a box.
+
+        Returns an array of tuples containing the coordinates (row, col) of the
+        pixels whose centers are within a certain box region. This works okay
+        for most regions. However, for boxes rotated by a multiple of 90 deg and
+        whose edges go precisely through the middle of the corresponding pixels,
+        those pixels are not included in the box. While this is a very special
+        case, it causes about half of the pixels to be ignored.
+        """
+        corners = self.get_corners()
         reg_path = Path(corners)
+        # Get region boundaries.
+        bounds = reg_path.get_extents().get_points()
+        [[x_min_bound, y_min_bound], [x_max_bound, y_max_bound]] = bounds
+        # For cases when the boundary pixels are not integers:
+        x_min_bound = floor(x_min_bound)
+        y_min_bound = floor(y_min_bound)
+        x_max_bound = ceil(x_max_bound)
+        y_max_bound = ceil(y_max_bound)
         pixels = []
-        for i in range(img_height):
-            for j in range(img_width):
-                if reg_path.contains_point((i,j)):
-                    pixels.append([i,j])
-    return pixels
+        for x in range(x_min_bound, x_max_bound+1):
+            for y in range(y_min_bound, y_max_bound+1):
+                if reg_path.contains_point((x, y)):
+                    pixels.append((y, x))
+        return pixels
 
-# Create "unbinned" profiles.
-def profile(counts_img, bkg_img, exp_img, region, min_counts=None):
-    region_shape = region[0]
-    [x0, y0, width, height, angle] = region[1]
-    if region_shape == 'box' and min_counts is not None:
+    def update_last_bin(self, prev_bin, src_counts, bkg_counts, net_counts):
+        """Update last bin of the profile.
+
+        If the  last bin cannot accumulate enough counts befor the end of the
+        region is reached, then the previous bin's radius and width are
+        increased to include the remaining area. The counts in the remaining
+        area are added to those in the previous bin.
+        """
+        return (prev_bin[0] + self.height / 2,
+               prev_bin[1] + self.height / 2,
+               prev_bin[2] + src_counts,
+               prev_bin[3] + bkg_counts,
+               prev_bin[4] + net_counts)
+
+    def bin_counts(self, counts_img, bkg_img, exp_img, pixels_in_bin):
+        """"Calculate the number of counts in a bin.""""
+        src_counts = 0
+        bkg_counts = 0
+        for pixel in pixels_in_bin:
+            if exp_img[pixel[0], pixel[1]] != 0:
+                src_counts += counts_img[pixel[0], pixel[1]]
+                bkg_counts += bkg_img[pixel[0], pixel[1]]
+                print(pixel[0], pixel[1], counts_img[pixel[0], pixel[1]])
+        net_counts = src_counts - bkg_counts
+        return src_counts, bkg_counts, net_counts
+
+    def counts_profile(self, counts_img, bkg_img, exp_img, min_counts=None):
+        """Generate count profiles.
+
+        The box is divided into bins based on a minimum number of counts or a
+        minimum S/N. The box is divided into bins starting from the bottom up,
+        where the bottom is defined as the bin starting at the lowest row in
+        the nonrotated box. E.g., if the box is rotated by 135 deg and it
+        can be divided into three bins, then the bins will be distributed as:
+
+                                 x
+                               x   x
+                             x       x
+                           x    1st    x
+                         x   x           x
+                       x       x    bin    x
+                     x    2nd    x       x
+                   x   x           x   x
+                 x       x    bin    x
+               x    3rd    x       x
+                 x           x   x
+                   x    bin    x
+                     x       x
+                       x   x
+                         x
+
+        If a background map is not read in, then the background is set to zero.
+        If an exposure map is not read in, then the exposure is set to one
+        everywhere. However, if point source exclusion is important, then an
+        exposure map is necessary; regions with zero exposure will be ignored,
+        so they need to be masked in the exposure map. Removing point sources
+        from the exposure map with dmcopy can be very slow if the full field of
+        view is not included in the region file. So to quicken things up, the
+        region file should look something like:
+
+                field()
+                -ellipse(......)
+                -circle(......)
+
+        The function returns a list of tuples of the form:
+        (bin radius, bin width, source counts, background counts, net counts)
+        """
+        if not bkg_img:
+            bkg_img = np.zeros(np.shape(counts_img))
+        if not exp_img:
+            exp_img = np.ones(np.shape(counts_img))
+        sb_profile = []
         i = 1
         while True:
-            x0_bin = np.cos(angle) * (-height/2 + i) + y0 - 1
-            y0_bin = np.sin(angle) * (-height/2 + i) + x0 - 1
-            bin_region = ['box', [x0_bin, y0_bin, 2*i, height, angle]]
-            pixels_in_bin = interior_pixels(img, bin_region)
-            src_counts = 0
-            bkg_counts = 0
-            if bkg_img is not None:
-                for pixel in pixels_in_bin:
-                    src_counts += counts_img[pixel]
-                    bkg_counts += bkg_img[pixel]
+            if len(sb_profile) != 0:
+                total_height_bins = sb_profile[-1][0] + sb_profile[-1][1]
+                if total_height_bins >= self.height:
+                    break
             else:
-                for pixel in pixels_in_bin:
-                    src_counts += counts_img[pixel]
-            net_counts = src_counts - bkg_counts
+                total_height_bins = 0
+            i = min(i, (self.height - total_height_bins) / 2)
+            x0_bin_nonrotated = 0
+            if len(sb_profile) == 0:
+                y0_bin_nonrotated = -self.height/2 + i
+            else:
+                y0_bin_nonrotated = -self.height/2 + i + sb_profile[-1][0] + \
+                                    sb_profile[-1][1]
+            x0_bin, y0_bin = rotate_point(self.x0, self.y0,
+                                          x0_bin_nonrotated, y0_bin_nonrotated,
+                                          self.angle)
+            print(i, x0_bin_nonrotated+self.x0, y0_bin_nonrotated+self.y0, x0_bin, y0_bin)
+            new_bin = Box(x0_bin, y0_bin, self.width, 2*i, self.angle)
+            pixels_in_bin = new_bin.interior_pixels()
+            src_counts, bkg_counts, net_counts = new_bin.bin_counts(
+                counts_img, bkg_img, exp_img, pixels_in_bin)
             if net_counts < min_counts:
-                i += 2
-                if len(bin_r) != 0 and bin_r[-1] + bin_width[-1] + 2*i >= width:
-                    
-            else if len(r) >= 2 and r[len(r)] + 2*i:
-                profile.append([r, net_counts])
-                break
+                if len(sb_profile) != 0:
+                    # If the last bin cannot accumulate the minimum
+                    # number of counts and the end of the region has been
+                    # reached...
+                    total_height_bins = sb_profile[-1][0] + \
+                                        sb_profile[-1][1] + 2*i
+                    if total_height_bins >= self.height:
+                        print('total...')
+                        sb_profile[-1] = new_bin.update_last_bin(sb_profile[-1], src_counts, bkg_counts, net_counts)
+                        print(sb_profile[-1])
+                        break
+                    # ... otherwise increase the width of the bin a little more.
+                    else:
+                        i += 1
+                # If no bins with the minimum number of counts have been found
+                # and the end of the bin has been reached, then throw an error
+                # message.
+                elif 2*i >= self.height:
+                    error_message = ErrorMessages('001')
+                    raise ValueError(error_message)
+                # If the profile is currently empty but the width of the bin
+                # is smaller than the width of the region, then just increase
+                # the bin width.
+                else:
+                    i += 1
+            # If the minimum number of counts has been reached, then simply
+            # add the previously calculated bin values to the surface brightness
+            # profile.
+            else:
+                if len(sb_profile) != 0:
+                    bin_radius = sb_profile[-1][0] + sb_profile[-1][1] + \
+                        new_bin.height/2
+                else:
+                    bin_radius = new_bin.height/2
+                sb_profile.append((bin_radius, new_bin.height/2, \
+                    src_counts, bkg_counts, net_counts))
+                i = 1
+        return sb_profile

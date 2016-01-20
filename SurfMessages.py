@@ -1,12 +1,17 @@
 # File: SurfMessages.py
 # Author: Georgiana Ogrean
-# 
+#
 # Errors and warnings raised by SurfFit.
 
-class SizeError(Exception):
-  # Raised when two images do not have the same size
-  pass
+import textwrap as tw
 
-class RegionError(Exception):
-  # Raised when something is wrong with the region defined by the user.
-  pass
+def remove_whitespace(text):
+    return " ".join(text.split())
+
+def ErrorMessages(error_number):
+    errors = {
+        '001': '''Too few net counts in the region.
+            Enlarge the region or lower the minimum
+            count threshold.'''
+    }
+    return tw.fill(remove_whitespace(errors[error_number]), 80)

@@ -7,10 +7,10 @@
 
 import pyfits
 import numpy as np
+from profile import Box
 
-# Use pyfits to open hdu.
-# Image and header info are then read in load_image.
 def open_file(filename, ext=0):
+    """Open FITS file."""
     try:
         img_hdu = pyfits.open(filename)
     except IOError:
@@ -19,6 +19,14 @@ def open_file(filename, ext=0):
         return img_hdu
 
 def load_image(filename, ext=0):
+    """Return a FITS image and the associated header.
+
+    The image is returned as a numpy array. By default, the first HDU is read.
+    A different HDU can be specified with the argument 'ext'. The header of the
+    image is modified to remove unncessary keywords such as HISTORY and COMMENT,
+    as well as keywords associated with a 3rd and 4th dimension (e.g. NAXIS3,
+    NAXIS4).
+    """
     img_hdu = open_file(filename, ext)
     if img_hdu:
         img = img_hdu[ext].data
@@ -27,10 +35,15 @@ def load_image(filename, ext=0):
     else:
         return None, None
 
-# Remove history and comments.
-# Some radio images are 4D. Force them to be 2D by removing
-# the keywords associated to the 3rd and 4th axes.
 def clean_header(hdr):
+    """Remove unwanted keywords from the image header.
+
+    Deletes from the image header unncessary keywords such as HISTORY and
+    COMMENT, as well as keywords associated with a 3rd and 4th dimension
+    (e.g. NAXIS3, NAXIS4). Some radio images are 4D, but the 3rd and 4th
+    dimensions are not necessary for plotting the brightness and may
+    occasionally cause problems with PyFITS routines.
+    """
     if not hdr:
         return None
     else:
@@ -43,25 +56,37 @@ def clean_header(hdr):
                 del hdr[key]
         return hdr
 
-# Read DS9 region file.
-# For now, this only deals with region files that only have
-# one (including) region. In the future, the function should be able to handle
-# more complex regions, including regions consisting of a combination of
-# including and excluding regions.
+def read_shape(data):
+    """Get region shape and parameters.
+
+    Splits the DS9 region definition into a string describing the region shape
+    (e.g. box, circle) and a list of floats containing the parameters of the
+    region.
+    """
+    reg_def = data[3].strip()
+    shape = reg_def.split(r'(')[0]
+    params = [float(i) for i in reg_def.split(r'(')[1].strip(')').split(',')]
+    return (shape, params)
+
 def load_region(filename):
+    """Read DS9 region file.
+
+    Reads a DS9 region file in which the region is defined in image coordinates.
+    The region file should contain a single region. Compound regions are not
+    supported currently.
+    """
     try:
         reg_file = open(filename)
     except IOError:
-        print('Cannot open file %s' %filename)
+        print('Cannot open file %s' % filename)
     else:
+        regions = {'box': Box.from_params}
         data = reg_file.readlines()
         if len(data) != 4 or data[2].strip() != 'image':
             error_message = """Currently only region files with one
                 region defined in image coordinates are supported."""
             raise ValueError(error_message)
         else:
-            reg_def = data[3].strip()
-            shape = reg_def.split(r'(')[0]
-            params = [float(i) \
-                for i in reg_def.split(r'(')[1].strip(')').split(',')]
-            return (shape, params)
+            shape, params = read_shape(data)
+            region = regions[shape](params)
+            return region
