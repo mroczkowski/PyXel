@@ -8,6 +8,7 @@
 from math import floor, ceil
 import pyfits
 import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from SurfMessages import ErrorMessages
 
@@ -45,7 +46,7 @@ class Box:
                    (self.width/2, -self.height/2)]
         rotated_corners = [rotate_point(self.x0, self.y0, x, y, self.angle)
             for x, y in corners]
-        print(rotated_corners)
+#        print(rotated_corners)
         return rotated_corners
 
     # Return an array containing the coordinates of the points inside
@@ -77,7 +78,8 @@ class Box:
                     pixels.append((y, x))
         return pixels
 
-    def update_last_bin(self, prev_bin, src_counts, bkg_counts, net_counts):
+    def update_last_bin(self, prev_bin, src_counts, err_src_counts,
+        bkg_counts, err_bkg_counts, net_counts, err_net_counts):
         """Update last bin of the profile.
 
         If the  last bin cannot accumulate enough counts befor the end of the
@@ -88,22 +90,30 @@ class Box:
         return (prev_bin[0] + self.height / 2,
                prev_bin[1] + self.height / 2,
                prev_bin[2] + src_counts,
-               prev_bin[3] + bkg_counts,
-               prev_bin[4] + net_counts)
+               np.sqrt(prev_bin[3]**2 + err_src_counts**2),
+               prev_bin[4] + bkg_counts,
+               np.sqrt(prev_bin[5]**2 + err_bkg_counts**2),
+               prev_bin[6] + net_counts,
+               np.sqrt(prev_bin[7]**2 + err_net_counts**2))
 
     def bin_counts(self, counts_img, bkg_img, exp_img, pixels_in_bin):
-        """"Calculate the number of counts in a bin.""""
+        """Calculate the number of counts in a bin."""
         src_counts = 0
         bkg_counts = 0
         for pixel in pixels_in_bin:
             if exp_img[pixel[0], pixel[1]] != 0:
                 src_counts += counts_img[pixel[0], pixel[1]]
                 bkg_counts += bkg_img[pixel[0], pixel[1]]
-                print(pixel[0], pixel[1], counts_img[pixel[0], pixel[1]])
+#                print(pixel[0], pixel[1], counts_img[pixel[0], pixel[1]])
+        err_src_counts = np.sqrt(src_counts)
+        err_bkg_counts = np.sqrt(bkg_counts)
         net_counts = src_counts - bkg_counts
-        return src_counts, bkg_counts, net_counts
+        err_net_counts = np.sqrt(err_src_counts**2 + err_bkg_counts**2)
+        return src_counts, err_src_counts, \
+               bkg_counts, err_bkg_counts, \
+               net_counts, err_net_counts
 
-    def counts_profile(self, counts_img, bkg_img, exp_img, min_counts=None):
+    def count_profile(self, counts_img, bkg_img, exp_img, min_counts=None):
         """Generate count profiles.
 
         The box is divided into bins based on a minimum number of counts or a
@@ -144,9 +154,10 @@ class Box:
         The function returns a list of tuples of the form:
         (bin radius, bin width, source counts, background counts, net counts)
         """
-        if not bkg_img:
+        if bkg_img is None:
+            print("hello")
             bkg_img = np.zeros(np.shape(counts_img))
-        if not exp_img:
+        if exp_img is None:
             exp_img = np.ones(np.shape(counts_img))
         sb_profile = []
         i = 1
@@ -167,10 +178,12 @@ class Box:
             x0_bin, y0_bin = rotate_point(self.x0, self.y0,
                                           x0_bin_nonrotated, y0_bin_nonrotated,
                                           self.angle)
-            print(i, x0_bin_nonrotated+self.x0, y0_bin_nonrotated+self.y0, x0_bin, y0_bin)
+#            print(i, x0_bin_nonrotated+self.x0, y0_bin_nonrotated+self.y0, x0_bin, y0_bin)
             new_bin = Box(x0_bin, y0_bin, self.width, 2*i, self.angle)
             pixels_in_bin = new_bin.interior_pixels()
-            src_counts, bkg_counts, net_counts = new_bin.bin_counts(
+            src_counts, err_src_counts, \
+                bkg_counts, err_bkg_counts, \
+                net_counts, err_net_counts = new_bin.bin_counts(
                 counts_img, bkg_img, exp_img, pixels_in_bin)
             if net_counts < min_counts:
                 if len(sb_profile) != 0:
@@ -180,9 +193,12 @@ class Box:
                     total_height_bins = sb_profile[-1][0] + \
                                         sb_profile[-1][1] + 2*i
                     if total_height_bins >= self.height:
-                        print('total...')
-                        sb_profile[-1] = new_bin.update_last_bin(sb_profile[-1], src_counts, bkg_counts, net_counts)
-                        print(sb_profile[-1])
+#                        print('total...')
+                        sb_profile[-1] = new_bin.update_last_bin(
+                            sb_profile[-1], src_counts, err_src_counts,
+                            bkg_counts, err_bkg_counts,
+                            net_counts, err_net_counts)
+#                        print(sb_profile[-1])
                         break
                     # ... otherwise increase the width of the bin a little more.
                     else:
@@ -208,6 +224,53 @@ class Box:
                 else:
                     bin_radius = new_bin.height/2
                 sb_profile.append((bin_radius, new_bin.height/2, \
-                    src_counts, bkg_counts, net_counts))
+                    src_counts, err_src_counts, bkg_counts, err_bkg_counts,
+                    net_counts, err_net_counts))
                 i = 1
         return sb_profile
+
+    def plot_count_profile(self, cts_profile, xlog=True, ylog=True,
+        xlims=None, ylims=None):
+        """Plot count profile.
+
+        Plots the net count profile (with error bars) and the background
+        profile (step function without error bars - the uncertainties are
+        difficult to get from a renormalized background image without knowing
+        the normalization). The plotting can easily be done without the use of
+        this routine, by just calling count_profile to get the data. This would
+        allow for more customization than this routine provides.
+        """
+
+        nbins = len(cts_profile)
+
+        r = np.array([cts_profile[i][0] for i in range(nbins)])
+        r_err = np.array([cts_profile[i][1] for i in range(nbins)])
+        bkg = np.array([cts_profile[i][4] for i in range(nbins)])
+        net_cts = np.array([cts_profile[i][6] for i in range(nbins)])
+        err_net_cts = np.array([cts_profile[i][7] for i in range(nbins)])
+
+        plt.scatter(r, net_cts, c="black", alpha=0.85, s=35, marker="s")
+        plt.errorbar(r, net_cts, xerr=r_err, yerr=err_net_cts,
+                     linestyle="None", color="black")
+        plt.step(r, bkg, where="mid")
+
+        plt.xlabel("Distance (pixels)")
+        plt.ylabel("Counts")
+
+        plt.grid(True)
+
+        if xlims is not None:
+            plt.xlim([xlims[0], xlims[1]])
+        else:
+            plt.xlim([0, np.max(r + r_err)])
+
+        if ylims is not None:
+            plt.ylim([ylims[0], ylims[1]])
+
+        if xlog:
+            plt.semilogx()
+
+        if ylog:
+            plt.semilogy()
+
+        plt.show()
