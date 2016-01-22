@@ -10,7 +10,7 @@ import models
 def call_model(fx_name):
     method = getattr(models, fx_name)
     if not method:
-        raise Exception("Method %s not implemented" % method_name)
+        raise Exception("Model %s is not implemented." % method_name)
     else:
         return method
 

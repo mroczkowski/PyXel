@@ -28,30 +28,11 @@ region = load_region("beta.reg")
 
 
 # Plot counts profile.
-p = region.count_profile(source_img, bkg_img, exp_img, min_counts=100)
-# region.plot_count_profile(p)
+p = region.sb_profile(source_img, bkg_img, exp_img, min_counts=50)
 
 model = FitModel("beta").lsq(p, [0.6, 10.0, 50.0, 50.0])
-print(model)
+region.plot_profile(p, \
+    with_model=True, model_name="beta", model_params=model,
+    xlabel=r"Distance (pixels)", ylabel=r"photons s^{-1} cm^{-2} pixel^{-1}")
 
-nbins = len(p)
-
-r = np.array([p[i][0] for i in range(nbins)])
-r_err = np.array([p[i][1] for i in range(nbins)])
-bkg = np.array([p[i][4] for i in range(nbins)])
-net_cts = np.array([p[i][6] for i in range(nbins)])
-err_net_cts = np.array([p[i][7] for i in range(nbins)])
-
-plt.scatter(r, net_cts, c="black", alpha=0.85, s=35, marker="s")
-plt.errorbar(r, net_cts, xerr=r_err, yerr=err_net_cts,
-             linestyle="None", color="black")
-plt.step(r, bkg, where="mid")
-plt.xlabel("Distance (pixels)")
-plt.ylabel("Counts")
-
-plt.grid(True)
-
-plt.semilogx()
-plt.semilogy()
-plt.plot(r, beta(r, model[0], model[1], model[2], model[3]))
-plt.show()
+#region.plot_count_profile(p)
