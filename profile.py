@@ -19,6 +19,9 @@ def rotate_point(x0, y0, x, y, angle):
     y_rot = y0 + x * np.sin(angle) + y * np.cos(angle)
     return (x_rot, y_rot)
 
+def convert_pix2arcmin(x, pix2arcmin):
+    return x * pix2arcmin * 60.
+
 class Box:
     """Generate box object."""
     def __init__(self, x0, y0, width, height, angle):
@@ -295,7 +298,8 @@ class Box:
                 i = 1
         return sb_profile
 
-    def sb_profile(self, counts_img, bkg_img, exp_img, min_counts=None):
+    def sb_profile(self, counts_img, src_hdr, bkg_img, exp_img, \
+        min_counts=None):
         """Generate surface brightness profiles.
 
         The box is divided into bins based on a minimum number of counts or a
@@ -340,6 +344,8 @@ class Box:
         background surface brightness uncertainty, net surface brightness,
         net surface brightness uncertainty)
         """
+        pix2arcmin = src_hdr['CDELT2']
+
         if bkg_img is None:
             print("hello")
             bkg_img = np.zeros(np.shape(counts_img))
@@ -415,6 +421,7 @@ class Box:
                     net_sb, err_net_sb))
                 i = 1
             prev_bin_npix = current_bin_npix
+        
         return sb_profile
 
     def plot_profile(self, profile, xlog=True, ylog=True,
@@ -429,11 +436,11 @@ class Box:
         this routine, by just calling count_profile to get the data. This would
         allow for more customization than this routine provides.
         """
-
         nbins = len(profile)
 
         r = np.array([profile[i][0] for i in range(nbins)])
         r_err = np.array([profile[i][1] for i in range(nbins)])
+
         bkg = np.array([profile[i][4] for i in range(nbins)])
         net_cts = np.array([profile[i][6] for i in range(nbins)])
         err_net_cts = np.array([profile[i][7] for i in range(nbins)])
@@ -443,7 +450,7 @@ class Box:
                      linestyle="None", color="black")
         plt.step(r, bkg, where="mid", linewidth=3)
 
-        plt.rc('text', usetex=False)
+        plt.rc('text', usetex=True)
         if xlabel is not None:
             plt.xlabel(xlabel)
         if ylabel is not None:
@@ -454,7 +461,7 @@ class Box:
         if xlims is not None:
             plt.xlim([xlims[0], xlims[1]])
         else:
-            plt.xlim([0, np.max(r + r_err)])
+            plt.xlim([0.01, np.max(r + r_err)])
 
         if ylims is not None:
             plt.ylim([ylims[0], ylims[1]])
