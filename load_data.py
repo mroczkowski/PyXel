@@ -7,7 +7,7 @@
 
 import pyfits
 import numpy as np
-from profile import Box
+from box import Box
 
 def open_file(filename, ext=0):
     """Open FITS file."""

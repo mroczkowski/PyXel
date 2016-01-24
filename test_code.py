@@ -1,11 +1,3 @@
-# File: test_code.py
-# Author: Georgiana Ogrean
-# Created on Jan 13, 2016
-#
-# Test the code.
-# Provisory file.
-#
-
 import pyfits
 import numpy as np
 from load_data import load_image, load_region
@@ -32,6 +24,6 @@ p = region.sb_profile(src_img, bkg_img, exp_img, min_counts=50)
 
 model = FitModel("beta").lsq(p, [0.6, 10.0, 50.0, 50.0])
 region.plot_profile(p, src_hdr, \
-    with_model=True, model_name="beta", model_params=model, \
+    with_model=False, model_name="beta", model_params=model, \
     xlabel=r"Distance (pixels)", \
     ylabel=r"photons s$^{-1}$ cm$^{-2}$ pixel$^{-1}$")
