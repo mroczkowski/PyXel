@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from fitting import call_model
-from aux import rotate_point
+from aux import rotate_point, convert_pix2arcmin
 
 class Region(object):
 
@@ -49,13 +49,17 @@ class Region(object):
         background counts, background counts uncertainty, net counts,
         net counts uncertainty)
         """
+        pix2arcmin = counts_img.hdr['CDELT2']
 
         bins = self.bin_region(counts_img, bkg_img, exp_img, min_counts)
         profile = []
         for current_bin in bins:
             src, err_src, bkg, err_bkg, net, err_net = self.get_bin_vals(
-                counts_img, bkg_img, exp_img, current_bin[2], only_counts)
-            profile.append((current_bin[0], current_bin[1], src, err_src, bkg,
+                counts_img.data, bkg_img.data, exp_img.data,
+                current_bin[2], only_counts)
+            bin_r = convert_pix2arcmin(current_bin[0], pix2arcmin)
+            bin_width = convert_pix2arcmin(current_bin[1], pix2arcmin)
+            profile.append((bin_r, bin_width, src, err_src, bkg,
                 err_bkg, net, err_net))
         return profile
 
