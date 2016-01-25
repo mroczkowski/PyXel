@@ -75,18 +75,13 @@ def load_region(filename):
     The region file should contain a single region. Compound regions are not
     supported currently.
     """
-    try:
-        reg_file = open(filename)
-    except IOError:
-        print('Cannot open file %s' % filename)
+    reg_file = open(filename)
+    regions = {'box': Box.from_params}
+    data = reg_file.readlines()
+    if len(data) != 4 or data[2].strip() != 'image':
+        error_message = ErrorMessages('002')
+        raise ValueError(error_message)
     else:
-        regions = {'box': Box.from_params}
-        data = reg_file.readlines()
-        if len(data) != 4 or data[2].strip() != 'image':
-            error_message = """Currently only region files with one
-                region defined in image coordinates are supported."""
-            raise ValueError(error_message)
-        else:
-            shape, params = read_shape(data)
-            region = regions[shape](params)
-            return region
+        shape, params = read_shape(data)
+        region = regions[shape](params)
+        return region
