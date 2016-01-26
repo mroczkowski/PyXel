@@ -3,7 +3,7 @@ import pyfits
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
-from SurfMessages import ErrorMessages
+from SurfMessages import ErrorMessages, InfoMessages
 from fitting import call_model
 from aux import rotate_point
 import profile
@@ -80,15 +80,15 @@ class Box(profile.Region):
         prev_bin[2].extend(current_bin_pixels)
         return (new_bin_radius, new_bin_height, prev_bin[2])
 
-    def get_bin_vals(self, counts_img_data, bkg_img_data, exp_img_data,
-        pixels_in_bin, only_counts=False, only_net_cts=False):
+    def get_bin_vals(self, counts_img_data, bkg_img_data, bkg_norm_factor,
+        exp_img_data, pixels_in_bin, only_counts=False, only_net_cts=False):
         """Calculate the number of counts in a bin."""
         src = 0
         bkg = 0
         err_src = 0
         err_bkg = 0
 
-        print("pixels in bin in get_bin_vals ", pixels_in_bin)
+#        print("pixels in bin in get_bin_vals ", pixels_in_bin)
         npix = len(pixels_in_bin)
 
         for pixel in pixels_in_bin:
@@ -98,16 +98,18 @@ class Box(profile.Region):
                 if only_counts:
                     exp_val = 1.
                 src += counts_img_data[pixel[0], pixel[1]] / exp_val
-                bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val
+                bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val \
+                    / bkg_norm_factor
                 err_src += counts_img_data[pixel[0], pixel[1]] / exp_val**2
-                err_bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val**2
+                err_bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val**2 \
+                    / bkg_norm_factor**2
 
         net = src - bkg
 
         if only_net_cts:
             return net
         else:
-            net = net/npix
+            net = net / npix
             src = src / npix
             bkg = bkg / npix
             err_net = np.sqrt(err_src + err_bkg) / npix
@@ -118,8 +120,14 @@ class Box(profile.Region):
     def bin_region(self, counts_img, bkg_img, exp_img, min_counts=None):
         if bkg_img is None:
             bkg_img_data = np.zeros(np.shape(counts_img.data))
+            bkg_norm_factor = 1
         else:
             bkg_img_data = bkg_img.data
+            if 'BKG_NORM' in bkg_img.hdr:
+                bkg_norm_factor = bkg_img.hdr['BKG_NORM']
+            else:
+                print(InfoMessages('003'))
+                bkg_norm_factor = 1
 
         if exp_img is None:
             exp_img_data = np.ones(np.shape(counts_img.data))
@@ -146,15 +154,15 @@ class Box(profile.Region):
                                           x0_bin_nonrotated, y0_bin_nonrotated,
                                           self.angle)
             new_bin = Box(x0_bin, y0_bin, self.width, 2*i, self.angle)
-            print(i)
-            print(x0_bin, y0_bin, self.width, 2*i, self.angle)
+#            print(i)
+#            print(x0_bin, y0_bin, self.width, 2*i, self.angle)
             pixels_in_bin = new_bin.interior_pixels()
-            print("pixels in bin: ", pixels_in_bin)
-            print("npix in bins: ", len(pixels_in_bin))
+#            print("pixels in bin: ", pixels_in_bin)
+#            print("npix in bins: ", len(pixels_in_bin))
             if not pixels_in_bin:
                 break
             net_counts = new_bin.get_bin_vals(counts_img.data, bkg_img_data,
-                exp_img_data, pixels_in_bin, only_counts=True,
+                bkg_norm_factor, exp_img_data, pixels_in_bin, only_counts=True,
                 only_net_cts=True)
             if net_counts < min_counts:
                 if len(bins) != 0:

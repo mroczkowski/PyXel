@@ -1,8 +1,3 @@
-# File: fitting.py
-# Author: Georgiana Ogrean
-# Created on 01.20.2016
-#
-
 import numpy as np
 from scipy.optimize import curve_fit
 import models

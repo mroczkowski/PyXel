@@ -1,10 +1,3 @@
-# File: load_data.py
-# Author: Georgiana Ogrean
-# Created on 03.22.2015
-#
-# Load counts image, exposure map, and background map.
-#
-
 import pyfits
 import numpy as np
 from box import Box

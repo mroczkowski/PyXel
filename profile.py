@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from fitting import call_model
-from aux import rotate_point, convert_pix2arcmin
+from aux import rotate_point, bin_pix2arcmin
+from SurfMessages import InfoMessages
 
 class Region(object):
 
@@ -50,17 +51,32 @@ class Region(object):
         net counts uncertainty)
         """
         pix2arcmin = counts_img.hdr['CDELT2']
-
         bins = self.bin_region(counts_img, bkg_img, exp_img, min_counts)
+
+        if bkg_img is None:
+            bkg_img_data = np.zeros(np.shape(counts_img.data))
+            bkg_norm_factor = 1
+        else:
+            bkg_img_data = bkg_img.data
+            if 'BKG_NORM' in bkg_img.hdr:
+                bkg_norm_factor = bkg_img.hdr['BKG_NORM']
+            else:
+                print(InfoMessages('003'))
+                bkg_norm_factor = 1
+
+        if exp_img is None:
+            exp_img_data = np.ones(np.shape(counts_img.data))
+        else:
+            exp_img_data = exp_img.data
+
         profile = []
         for current_bin in bins:
             src, err_src, bkg, err_bkg, net, err_net = self.get_bin_vals(
-                counts_img.data, bkg_img.data, exp_img.data,
+                counts_img.data, bkg_img_data, bkg_norm_factor, exp_img_data,
                 current_bin[2], only_counts)
-            bin_r = convert_pix2arcmin(current_bin[0], pix2arcmin)
-            bin_width = convert_pix2arcmin(current_bin[1], pix2arcmin)
-            profile.append((bin_r, bin_width, src, err_src, bkg,
-                err_bkg, net, err_net))
+            bin_data = bin_pix2arcmin(current_bin[0], current_bin[1], src,
+                err_src, bkg, err_bkg, net, err_net, pix2arcmin)
+            profile.append(bin_data)
         return profile
 
     def counts_profile(self, counts_img, bkg_img, exp_img,
@@ -118,6 +134,7 @@ class Region(object):
             plt.ylim([ylims[0], ylims[1]])
 
         if xlog:
+            print("hello")
             plt.semilogx()
 
         if ylog:
