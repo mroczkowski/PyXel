@@ -9,6 +9,14 @@ def call_model(fx_name):
     else:
         return method
 
+class Model:
+    def __init__(self, name):
+        mod = getattr(models, name)
+        if not mod:
+            raise Exception("Model %s is not implemented." % name)
+        else:
+            self.model = mod
+
 class FitModel:
     """Fit a certain model to the data.
 
