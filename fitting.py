@@ -18,7 +18,7 @@ class FitModel:
     def __init__(self, fx_name):
         self.model = fx_name
 
-    def lsq(self, profile, guess):
+    def lsq(self, profile, guess, bounds=None):
         """Fit a profile using least squares statistics.
 
         The fitting is done using the Levenberg-Marquardt algorithm.
@@ -27,6 +27,9 @@ class FitModel:
         r = np.array([profile[i][0] for i in range(nbins)])
         sb = np.array([profile[i][6] for i in range(nbins)])
         sb_err = np.array([profile[i][7] for i in range(nbins)])
+
+        if not bounds:
+            bounds = (-np.inf, np.inf)
 
         fx = call_model(self.model)
         popt, pcov = curve_fit(fx, r, sb, p0=guess, sigma=sb_err)

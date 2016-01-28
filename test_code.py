@@ -23,6 +23,7 @@ region = load_region("beta.reg")
 p = region.sb_profile(src_img, bkg_img, exp_img, min_counts=50)
 
 model = FitModel("beta").lsq(p, [0.6, 0.5, 1e-2, 1e-6])
+
 region.plot_profile(p, xlog=False, ylog=False, \
     with_model=True, model_name="beta", model_params=model, \
     xlabel=r"Distance (arcmin)", \
