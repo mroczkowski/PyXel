@@ -10,14 +10,6 @@ def call_model(fx_name):
         return method
 
 class Model:
-    def __init__(self, name):
-        mod = getattr(models, name)
-        if not mod:
-            raise Exception("Model %s is not implemented." % name)
-        else:
-            self.model = mod
-
-class FitModel:
     """Fit a certain model to the data.
 
     Available models are: beta, power-law, broken power-law, and beta plus a
@@ -38,5 +30,8 @@ class FitModel:
 
         fx = call_model(self.model)
         popt, pcov = curve_fit(fx, r, sb, p0=guess, sigma=sb_err)
-        print(popt)
         return popt
+
+    def fit(self, profile, guess, method='leastsq'):
+        if method == 'leastsq':
+            return self.lsq(profile, guess)
