@@ -2,7 +2,7 @@ import pyfits
 import numpy as np
 from load_data import Image, load_region
 import matplotlib.pyplot as plt
-from fitting import FitModel
+from fitting import Model
 from models import beta
 #from profile import Box #, counts_profile
 
@@ -22,7 +22,7 @@ region = load_region("beta.reg")
 # Plot counts profile.
 p = region.sb_profile(src_img, bkg_img, exp_img, min_counts=50)
 
-model = FitModel("beta").lsq(p, [0.6, 0.5, 1e-2, 1e-6])
+model = Model("beta").fit(p, [0.6, 0.5, 1e-2, 1e-6], method='leastsq')
 
 region.plot_profile(p, xlog=False, ylog=False, \
     with_model=True, model_name="beta", model_params=model, \

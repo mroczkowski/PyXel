@@ -144,6 +144,7 @@ class Region(object):
             if not model_name:
                 raise Exception("No model is defined.")
             else:
+                print(model_params)
                 model = call_model(model_name)(r, *model_params)
                 plt.plot(r, model, color="r", linewidth=3, alpha=0.75)
 
