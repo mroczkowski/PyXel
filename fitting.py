@@ -2,14 +2,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import models
 
-def call_model(fx_name):
-    method = getattr(models, fx_name)
-    if not method:
-        raise Exception("Model %s is not implemented." % method_name)
-    else:
-        return method
-
-class Model:
+class FitModel:
     """Fit a certain model to the data.
 
     Available models are: beta, power-law, broken power-law, and beta plus a
@@ -33,9 +26,8 @@ class Model:
 
         fx = call_model(self.model)
         popt, pcov = curve_fit(fx, r, sb, p0=guess, sigma=sb_err)
-        print(popt)
         return popt
 
-    def fit(self, profile, guess, bounds=None, method='leastsq'):
+    def fit(self, profile, guess, method='leastsq'):
         if method == 'leastsq':
-            self.lsq(profile, guess, bounds)
+            return self.lsq(profile, guess)

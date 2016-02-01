@@ -4,8 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from SurfMessages import ErrorMessages, InfoMessages
-from fitting import call_model
-from aux import rotate_point
+from aux import rotate_point, call_model
 import profile
 
 class Box(profile.Region):

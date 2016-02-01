@@ -1,4 +1,5 @@
 import numpy as np
+import model_defs
 
 def rotate_point(x0, y0, x, y, angle):
     """Rotate point (x,y) counter-clockwise around (x0,y0)."""
@@ -18,3 +19,10 @@ def bin_pix2arcmin(bin_r, bin_width, src, err_src, bkg, err_bkg,
     net = net / pix2arcmin**2 / 3600.
     err_net = err_net / pix2arcmin**2 / 3600.
     return (bin_r, bin_width, src, err_src, bkg, err_bkg, net, err_net)
+
+def call_model(func_name):
+    model = getattr(model_defs, func_name)
+    if not model:
+        raise Exception("Model %s is not implemented." % func_name)
+    else:
+        return model

@@ -1,8 +1,20 @@
-def const(c):
-    """Fit a constant to the data."""
-    return c
+import numpy as np
+import sys
+from model import Model
 
-def beta(r, beta=0.7, rc=1., s0=1e-2, bkg=1e-4):
-   """Fit beta-model to the data."""
-   mod = bkg + s0 * (1. + (r/rc)**2.) ** (-3.*beta+0.5)
-   return mod
+class ModelParameter:
+    def __init__(self, name, default_value):
+        self.name = name
+        self.default_value = default_value
+
+class Constant:
+    def __init__(self):
+        self.func_name = 'const'
+        self.allowed_parameters = set(['constant'])
+
+class Beta(Model):
+    def __init__(self):
+        s0 = ModelParameter('s0', 1e-2)
+        beta = ModelParameter('beta', 0.7)
+        rc = ModelParameter('rc', 0.1)
+        super(Beta, self).__init__([s0, beta, rc])

@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from fitting import call_model
-from aux import rotate_point, bin_pix2arcmin
+from aux import rotate_point, bin_pix2arcmin, call_model
 from SurfMessages import InfoMessages
 
 class Region(object):
