@@ -45,17 +45,9 @@ beta = Beta()
 
 const + beta --> const.__add__(beta)
 
-class ModelParameter:
-    def __init__(self, name, default_value):
-        self.name = name
-        ...
+mod.set_constraint(blah...)
 
-class Parameter:
-    def __init__(self, model_parameter):
-        self.val = model_parameter.default_value
-        self.frozen = False
-        self.min = -inf
-        self.max = +inf
+mod.fit(profile, guess, method='chi2' or method='cstat')
 
 class Model:
     def __init__(self, params):
@@ -68,15 +60,6 @@ class Model:
     def __add__(self, other):
         return AdditiveModel(self, other)
 
-mod = Beta()
-mod.set_parameter('beta', 0.5)
-
-class Beta(Model):
-    def __init__(self):
-        s0 = ModelParameter('s0', 1.2)
-        Model.__init__(self, [s0])
-
-    def evaluate(x):
 
 class AdditiveModel(Model):
     def __init__(self, model1, model2)

@@ -7,10 +7,13 @@ class ModelParameter:
         self.name = name
         self.default_value = default_value
 
-class Constant:
+class Constant(Model):
     def __init__(self):
-        self.func_name = 'const'
-        self.allowed_parameters = set(['constant'])
+        const = ModelParameter('const', 1e-4)
+        super(Constant, self).__init__([const])
+
+    def evaluate(self, x):
+        return self.params['const'].value
 
 class Beta(Model):
     def __init__(self):
@@ -23,6 +26,6 @@ class Beta(Model):
         return self.params['s0'].value * (1. + (x/self.params['rc'].value)**2) \
                ** (0.5 - 3.*self.params['beta'].value)
 
-mod = Beta()
-mod.set_parameter('beta', 0.5/3)
+mod = Constant()
+mod.freeze('const')
 mod.show_params()

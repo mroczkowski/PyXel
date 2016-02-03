@@ -27,7 +27,7 @@ class Model(object):
 
     def thaw(self, name):
         if name in self.params.keys():
-            self.params[name]['frozen'] = False
+            self.params[name].frozen = False
         else:
             raise NameError("Parameter %s does not exist." % name)
 
@@ -54,8 +54,8 @@ class Model(object):
         print("-"*60)
         for name in self.params.keys():
             print(self.params[name].name.rjust(10),
-                  repr(round(self.params[name].value, 3)).rjust(10),
+                  str('%.3e' % self.params[name].value).rjust(10),
                   repr(self.params[name].frozen).rjust(10),
-                  repr(round(self.params[name].min, 3)).rjust(12),
-                  repr(round(self.params[name].max, 3)).rjust(12))
+                  str('%.3e' % self.params[name].min).rjust(12),
+                  str('%.3e' % self.params[name].max).rjust(12))
         print()
