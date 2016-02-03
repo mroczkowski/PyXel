@@ -17,7 +17,7 @@ class Model(object):
 
     def set_parameter(self, name, value, frozen=None,
                       min_bound=None, max_bound=None):
-        self.params[name].val = value
+        self.params[name].value = value
         if frozen is not None:
             self.params[name].frozen = bool(frozen)
         if min_bound is not None:
@@ -41,68 +41,21 @@ class Model(object):
         if name in self.params.keys():
             self.params[name].min = min_bound
 
-    def set_upper_bound(self, param, max):
-        if param in self.params.keys():
-            self.params[param].max = max
+    def set_upper_bound(self, name, max_bound):
+        if name in self.params.keys():
+            self.params[name].max = max_bound
 
     def show_params(self):
-        print(self.params)
-
-
-
-    def __add__(self, other):
-        return AdditiveModel(self, other)
-
-
-
-def get_model_defaults(func):
-    try:
-        defaults = inspect.getcallargs(func, 'x')
-        del defaults['x']
-    except NameError:
-        defaults = inspect.getcallargs(func)
-    return defaults
-
-def initialize_params(params, allowed_params):
-    param_defs = {}
-    for key, val in params.items():
-        if key in allowed_params:
-            param_defs[key] = {}
-            param_defs[key]['value'] = val
-            param_defs[key]['frozen'] = False
-            param_defs[key]['min'] = -np.inf
-            param_defs[key]['max'] = np.inf
-    return param_defs
-
-class Model(object):
-    def __init__(self, params):
-        getattr(sys.modules[__name__], func_name).__init__(self)
-        self.func = call_model(self.func_name)
-        params = get_model_defaults(self.func)
-        self.params = initialize_params(params, self.allowed_parameters)
-
-    def set_param(self, param, val, frozen=False, min=-np.inf, max=np.inf):
-        if param in self.params.keys():
-            self.params[param]['value'] = val
-            self.params[param]['frozen'] = frozen
-            self.params[param]['min'] = min
-            self.params[param]['max'] = max
-
-    def thaw(self, param):
-        if param in self.params.keys():
-            self.params[param]['frozen'] = False
-
-    def freeze(self, param):
-        if param in self.params.keys():
-            self.params[param]['frozen'] = True
-
-    def set_lower_bound(self, param, min):
-        if param in self.params.keys():
-            self.params[param]['min'] = min
-
-    def set_upper_bound(self, param, max):
-        if param in self.params.keys():
-            self.params[param]['max'] = max
-
-    def show_params(self):
-        print(self.params)
+        print()
+        print("MODEL SUMMARY:")
+        print()
+        print("Parameter".rjust(10), "Value".rjust(10), "Frozen?".rjust(10),
+              "Min Bound".rjust(12), "Max Bound".rjust(12))
+        print("-"*60)
+        for name in self.params.keys():
+            print(self.params[name].name.rjust(10),
+                  repr(round(self.params[name].value, 3)).rjust(10),
+                  repr(self.params[name].frozen).rjust(10),
+                  repr(round(self.params[name].min, 3)).rjust(12),
+                  repr(round(self.params[name].max, 3)).rjust(12))
+        print()
