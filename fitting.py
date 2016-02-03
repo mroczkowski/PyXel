@@ -1,21 +1,15 @@
 import numpy as np
-from scipy.optimize import curve_fit
-import models
+import scipy.optimize as op
+from model import Model
 
-class FitModel:
+class Minimizer(Model):
     """Fit a certain model to the data.
 
-    Available models are: beta, power-law, broken power-law, and beta plus a
-    power-law. To be added: double beta, cusp beta.
+    Available models are: constant, beta, power-law, broken power-law, and
+    beta plus a power-law.
     """
-    def __init__(self, fx_name):
-        self.model = fx_name
-
-    def lsq(self, profile, guess, bounds=None):
-        """Fit a profile using least squares statistics.
-
-        The fitting is done using the Levenberg-Marquardt algorithm.
-        """
+    def leastsq(self, data, guess):
+        """Fit a profile using least squares statistics."""
         nbins = len(profile)
         r = np.array([profile[i][0] for i in range(nbins)])
         sb = np.array([profile[i][6] for i in range(nbins)])
@@ -29,5 +23,6 @@ class FitModel:
         return popt
 
     def fit(self, profile, guess, method='leastsq'):
+        objective_func = '''... function we're trying to minimize ...'''
         if method == 'leastsq':
-            return self.lsq(profile, guess)
+            return self.leastsq(profile, guess)

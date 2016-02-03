@@ -14,6 +14,7 @@ class FitParameter:
 class Model(object):
     def __init__(self, params):
         self.params = {x.name: FitParameter(x) for x in params}
+        self.constraints = ()
 
     def set_parameter(self, name, value, frozen=None,
                       min_bound=None, max_bound=None):
@@ -44,6 +45,13 @@ class Model(object):
     def set_upper_bound(self, name, max_bound):
         if name in self.params.keys():
             self.params[name].max = max_bound
+
+    def set_constraints(self, func, param_list):
+        x = []
+        for name in param_list:
+            if name in self.params.keys():
+                x.append(self.params[name].name)
+        self.constraints()
 
     def show_params(self):
         print()
