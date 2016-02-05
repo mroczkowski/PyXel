@@ -22,10 +22,20 @@ class Beta(Model):
         rc = ModelParameter('rc', 0.1)
         super(Beta, self).__init__([s0, beta, rc])
 
-    def evaluate(self, x):
-        return self.params['s0'].value * (1. + (x/self.params['rc'].value)**2) \
-               ** (0.5 - 3.*self.params['beta'].value)
+    def evaluate_with_params(self, x, params):
+        params[0] * (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
+
 
 mod = Constant()
 mod.freeze('const')
 mod.show_params()
+constraints = [{'type': 'ineq', 'fun': lambda params: params.beta + params.s0 * 2}]
+mod.set_constraints(constraints)
+
+
+'''
+def fit():
+    result = scipy.optimize.minimize(constraints=self.constraints)
+    for param in self.params:
+        param.value = result['param'].value
+'''

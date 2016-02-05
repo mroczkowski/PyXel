@@ -26,3 +26,6 @@ class Minimizer(Model):
         objective_func = '''... function we're trying to minimize ...'''
         if method == 'leastsq':
             return self.leastsq(profile, guess)
+
+mod = (...)
+mod.fit()

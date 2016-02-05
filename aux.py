@@ -1,5 +1,4 @@
 import numpy as np
-import model_defs
 
 def rotate_point(x0, y0, x, y, angle):
     """Rotate point (x,y) counter-clockwise around (x0,y0)."""

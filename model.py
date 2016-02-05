@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import inspect
+import collections
 from aux import call_model
 
 class FitParameter:
@@ -13,8 +14,15 @@ class FitParameter:
 
 class Model(object):
     def __init__(self, params):
-        self.params = {x.name: FitParameter(x) for x in params}
+        self.params = collections.OrderedDict([(x.name, FitParameter(x)) for x in params])
         self.constraints = ()
+
+    def evaluate_with_params(self, x, params):
+        raise NotImplementedError()
+
+    def evaluate(self, x):
+        param_values = [param.value for param in self.params.values()]
+        return self.evaluate_with_params(x, param_values)
 
     def set_parameter(self, name, value, frozen=None,
                       min_bound=None, max_bound=None):
@@ -46,12 +54,15 @@ class Model(object):
         if name in self.params.keys():
             self.params[name].max = max_bound
 
-    def set_constraints(self, func, param_list):
-        x = []
-        for name in param_list:
-            if name in self.params.keys():
-                x.append(self.params[name].name)
-        self.constraints()
+    def set_constraints(self, constraints):
+        def make_func(x, user_func):
+            obj = object()
+            for i, name in enumerate(self.params):
+                setattr(obj, name, x[i])
+            return user_func(obj)
+        self.constraints = [{'type': y['type'],
+                             'fun': lambda x: fun(x, y['fun'])}
+                             for y in constraints]
 
     def show_params(self):
         print()
