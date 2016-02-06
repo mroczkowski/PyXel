@@ -23,7 +23,7 @@ class Beta(Model):
         super(Beta, self).__init__([s0, beta, rc])
 
     def evaluate_with_params(self, x, params):
-        params[0] * (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
+        return params[0] * (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
 
 
 mod = Constant()

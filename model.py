@@ -34,6 +34,24 @@ class Model(object):
         if max_bound is not None:
             self.params[name].max = float(max_bound)
 
+    def min_fitrange(self, x, y, yerr, min_range=None):
+        if min_range is not None and np.min(x) < min_range:
+            x_limited = x[x >= min_range]
+            y_limited = y[x >= min_range]
+            yerr_limited = yerr[x >= min_range]
+            return x_limited, y_limited, yerr_limited
+        else:
+            return x, y, yerr
+
+    def max_fitrange(self, x, y, yerr, max_range=None):
+        if max_range is not None and np.max(x) > max_range:
+            x_limited = x[x <= max_range]
+            y_limited = y[x <= max_range]
+            yerr_limited = yerr[x <= max_range]
+            return x_limited, y_limited, yerr_limited
+        else:
+            return x, y, yerr
+
     def thaw(self, name):
         if name in self.params.keys():
             self.params[name].frozen = False

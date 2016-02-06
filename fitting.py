@@ -22,6 +22,9 @@ class Minimizer(Model):
         popt, pcov = curve_fit(fx, r, sb, p0=guess, sigma=sb_err)
         return popt
 
+
+
+
     def fit(self, profile, guess, method='leastsq'):
         objective_func = '''... function we're trying to minimize ...'''
         if method == 'leastsq':
