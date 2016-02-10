@@ -24,18 +24,3 @@ class Beta(Model):
 
     def evaluate_with_params(self, x, params):
         return params[0] * (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
-
-
-mod = Constant()
-mod.freeze('const')
-mod.show_params()
-constraints = [{'type': 'ineq', 'fun': lambda params: params.beta + params.s0 * 2}]
-mod.set_constraints(constraints)
-
-
-'''
-def fit():
-    result = scipy.optimize.minimize(constraints=self.constraints)
-    for param in self.params:
-        param.value = result['param'].value
-'''

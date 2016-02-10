@@ -1,34 +1,42 @@
 import numpy as np
-import scipy.optimize as op
-from model import Model
+import scipy.optimize
+import scipy.integrate
 
-class Minimizer(Model):
-    """Fit a certain model to the data.
+from aux import get_data_for_chi
 
-    Available models are: constant, beta, power-law, broken power-law, and
-    beta plus a power-law.
-    """
-    def leastsq(self, data, guess):
-        """Fit a profile using least squares statistics."""
-        nbins = len(profile)
-        r = np.array([profile[i][0] for i in range(nbins)])
-        sb = np.array([profile[i][6] for i in range(nbins)])
-        sb_err = np.array([profile[i][7] for i in range(nbins)])
+"""Define the objective functions for the available statistics.
 
-        if not bounds:
-            bounds = (-np.inf, np.inf)
+This functions will be minimized by the fitting routine. Available
+statistics are chi-square and
+"""
+def do_fit(fun, model):
+    x0 = np.array([param.value for param in model.params.values()])
+    result = scipy.optimize.minimize(fun, x0, method='Nelder-Mead')
+    if not result.success:
+        print(result)
+        raise Exception('Fit failed: {}'.format(result.message))
+    for param, value in zip(model.params.values(), result.x):
+        param.value = value
+    #model.cov = result.hess_inv
+    return result
 
-        fx = call_model(self.model)
-        popt, pcov = curve_fit(fx, r, sb, p0=guess, sigma=sb_err)
-        return popt
+def chi(obs_profile, model, minrange=-np.inf, maxrange=+np.inf):
+    """Fit a profile using least squares statistics."""
+    nbins, r, w, net, net_err = get_data_for_chi(obs_profile, minrange, maxrange)
 
+    def calc_chi2(params):
+        print('Iterating... ', params)
+        mod_profile = np.array(
+            [scipy.integrate.quad(model.evaluate_with_params,
+                                  x - width, x + width, params)[0] / 2 / width
+             for x, width in zip(r, w)])
+        print('  => ', np.sum((net - mod_profile) ** 2 / net_err ** 2))
+        #mod_profile = np.array([model.evaluate_with_params(x, params)
+        #                        for x in r])
+        return np.sum((net - mod_profile) ** 2 / net_err ** 2)
 
+    return do_fit(calc_chi2, model)
 
-
-    def fit(self, profile, guess, method='leastsq'):
-        objective_func = '''... function we're trying to minimize ...'''
-        if method == 'leastsq':
-            return self.leastsq(profile, guess)
-
-mod = (...)
-mod.fit()
+#def cash(obs_profile, mod_profile):
+#    nbins, r, src, npix, exp = get_data_for_cash(obs_profile)
+#    counts = src * exp * npix

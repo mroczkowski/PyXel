@@ -2,6 +2,8 @@ import sys
 import numpy as np
 import inspect
 import collections
+
+from fitting import chi
 from aux import call_model
 
 class FitParameter:
@@ -96,3 +98,9 @@ class Model(object):
                   str('%.3e' % self.params[name].min).rjust(12),
                   str('%.3e' % self.params[name].max).rjust(12))
         print()
+
+    def fit(self, profile, statistics='cash'):
+        if statistics == 'chi':
+            return chi(profile, self)
+        else:
+            raise Exception('Statistics {} does not exist'.format(statistics))
