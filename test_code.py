@@ -32,7 +32,7 @@ p = region.sb_profile(src_img, bkg_img, exp_img, min_counts=50)
 
 mod = Beta()
 mod.show_params()
-mod.set_parameter('beta', 0.8, frozen=True, min_bound=0.0)
+mod.set_parameter('beta', 0.8)
 mod.set_parameter('rc', 0.4)
 mod.set_parameter('s0', 1e-4)
 mod.show_params()

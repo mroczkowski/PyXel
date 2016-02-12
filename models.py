@@ -24,3 +24,13 @@ class Beta(Model):
 
     def evaluate_with_params(self, x, params):
         return params[0] * (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
+
+    def jacobian(self, x, params, i):
+        if i == 0:
+            return (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
+        if i == 1:
+            return -3 * params[0] * np.log(1. + (x/params[2])**2) * \
+                   (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
+        if i == 2:
+            return -2 * params[0] * x**2 / params[2]**3 * \
+                   (1. + (x/params[2])**2) ** (-0.5 - 3*params[1])

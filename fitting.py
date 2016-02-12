@@ -4,14 +4,9 @@ import scipy.integrate
 
 from aux import get_data_for_chi
 
-"""Define the objective functions for the available statistics.
-
-This functions will be minimized by the fitting routine. Available
-statistics are chi-square and
-"""
 def do_fit(fun, model):
     x0 = np.array([param.value for param in model.params.values()])
-    result = scipy.optimize.minimize(fun, x0, method='Nelder-Mead')
+    result = scipy.optimize.minimize(fun, x0, method='SLSQP', tol=0.0001, jac=False, options={'ftol': 1e-6})
     if not result.success:
         print(result)
         raise Exception('Fit failed: {}'.format(result.message))
@@ -33,7 +28,17 @@ def chi(obs_profile, model, minrange=-np.inf, maxrange=+np.inf):
         print('  => ', np.sum((net - mod_profile) ** 2 / net_err ** 2))
         #mod_profile = np.array([model.evaluate_with_params(x, params)
         #                        for x in r])
-        return np.sum((net - mod_profile) ** 2 / net_err ** 2)
+
+        chi2 = np.sum((net - mod_profile) ** 2 / net_err ** 2)
+        jac = np.zeros(len(params))
+        for i in range(len(params)):
+            der = np.array(
+                [scipy.integrate.quad(model.jacobian,
+                            x - width, x + width, (params, i))[0] / 2 / width
+                 for x, width in zip(r, w)])
+            jac[i] = np.sum(-2*(net - mod_profile) / net_err**2 * der)
+        print('analytical jacobian: ', jac)
+        return chi2
 
     return do_fit(calc_chi2, model)
 
