@@ -3,9 +3,11 @@ import sys
 from model import Model
 
 class ModelParameter:
-    def __init__(self, name, default_value):
+    def __init__(self, name, default_value, default_min=None, default_max=None):
         self.name = name
         self.default_value = default_value
+        self.default_min = default_min
+        self.default_max = default_max
 
 class Constant(Model):
     def __init__(self):
@@ -17,9 +19,9 @@ class Constant(Model):
 
 class Beta(Model):
     def __init__(self):
-        s0 = ModelParameter('s0', 1e-2)
-        beta = ModelParameter('beta', 0.7)
-        rc = ModelParameter('rc', 0.1)
+        s0 = ModelParameter('s0', 1e-2, 0., None)
+        beta = ModelParameter('beta', 0.7, 0., None)
+        rc = ModelParameter('rc', 0.1, 1e-12, None)
         super(Beta, self).__init__([s0, beta, rc])
 
     def evaluate_with_params(self, x, params):

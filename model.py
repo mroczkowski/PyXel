@@ -11,8 +11,8 @@ class FitParameter:
         self.name = model_parameter.name
         self.value = model_parameter.default_value
         self.frozen = False
-        self.min = -np.inf
-        self.max = +np.inf
+        self.min = model_parameter.default_min
+        self.max = model_parameter.default_max
 
 class Model(object):
     def __init__(self, params):
@@ -94,9 +94,9 @@ class Model(object):
         for name in self.params.keys():
             print(self.params[name].name.rjust(10),
                   str('%.3e' % self.params[name].value).rjust(10),
-                  repr(self.params[name].frozen).rjust(10),
-                  str('%.3e' % self.params[name].min).rjust(12),
-                  str('%.3e' % self.params[name].max).rjust(12))
+                  repr(self.params[name].frozen).rjust(10))
+#                  str('%.3e' % self.params[name].min).rjust(12),
+#                  str('%.3e' % self.params[name].max).rjust(12))
         print()
 
     def fit(self, profile, statistics='cash'):
