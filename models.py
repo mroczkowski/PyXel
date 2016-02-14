@@ -32,5 +32,6 @@ class Beta(Model):
             return -3 * params[0] * np.log(1. + (x/params[2])**2) * \
                    (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
         if i == 2:
-            return -2 * params[0] * x**2 / params[2]**3 * \
+            return -2 * params[0] * x**2 * (0.5 - 3*params[1]) / \
+                   params[2]**3 * \
                    (1. + (x/params[2])**2) ** (-0.5 - 3*params[1])
