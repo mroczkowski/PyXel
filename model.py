@@ -26,15 +26,25 @@ class Model(object):
         param_values = [param.value for param in self.params.values()]
         return self.evaluate_with_params(x, param_values)
 
-    def set_parameter(self, name, value, frozen=None,
+    def set_parameter(self, name, value, frozen=False,
                       min_bound=None, max_bound=None):
         self.params[name].value = value
-        if frozen is not None:
-            self.params[name].frozen = bool(frozen)
-        if min_bound is not None:
-            self.params[name].min = float(min_bound)
-        if max_bound is not None:
-            self.params[name].max = float(max_bound)
+        if frozen:
+            self.params[name].min = value
+            self.params[name].max = value
+        else:
+            is_frozen = self.params[name].min == self.params[name].max
+            if min_bound is not None or is_frozen:
+                if min_bound == -np.inf:
+                    self.params[name].min = None
+                else:
+                    self.params[name].min = min_bound
+
+            if max_bound is not None or is_frozen:
+                if max_bound == +np.inf:
+                    self.params[name].max = None
+                else:
+                    self.params[name].max = max_bound
 
     def min_fitrange(self, x, y, yerr, min_range=None):
         if min_range is not None and np.min(x) < min_range:
@@ -54,18 +64,6 @@ class Model(object):
         else:
             return x, y, yerr
 
-    def thaw(self, name):
-        if name in self.params.keys():
-            self.params[name].frozen = False
-        else:
-            raise NameError("Parameter %s does not exist." % name)
-
-    def freeze(self, name):
-        if name in self.params.keys():
-            self.params[name].frozen = True
-        else:
-            raise NameError("Parameter %s does not exist." % name)
-
     def set_lower_bound(self, name, min_bound):
         if name in self.params.keys():
             self.params[name].min = min_bound
@@ -74,15 +72,19 @@ class Model(object):
         if name in self.params.keys():
             self.params[name].max = max_bound
 
+
+    class NamedParameters:
+        def __init__(self, param_names, param_values):
+            for name, value in zip(param_names, param_values):
+                setattr(self, name, value)
+
     def set_constraints(self, constraints):
         def make_func(x, user_func):
-            obj = object()
-            for i, name in enumerate(self.params):
-                setattr(obj, name, x[i])
+            obj = Model.NamedParameters(self.params, x)
             return user_func(obj)
-        self.constraints = [{'type': y['type'],
-                             'fun': lambda x: fun(x, y['fun'])}
-                             for y in constraints]
+        self.constraints = [{'type': constraint['type'],
+                             'fun': lambda x: make_func(x, constraint['fun'])}
+                             for constraint in constraints]
 
     def show_params(self):
         print()

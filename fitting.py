@@ -7,8 +7,9 @@ from aux import get_data_for_chi
 def do_fit(fun, model):
     x0 = np.array([param.value for param in model.params.values()])
     bnd = [(param.min, param.max) for param in model.params.values()]
-    result = scipy.optimize.minimize(fun, x0, method='SLSQP', jac=True, \
-                                     bounds=bnd, options={'ftol': 2.22e-9})
+    result = scipy.optimize.minimize(fun, x0, method='SLSQP', jac=True, 
+                                     bounds=bnd, constraints=model.constraints,
+                                     options={'ftol': 2.22e-9})
     if not result.success:
         print(result)
         raise Exception('Fit failed: {}'.format(result.message))

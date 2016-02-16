@@ -35,6 +35,6 @@ mod.show_params()
 mod.set_parameter('beta', 0.8)
 mod.set_parameter('rc', 0.4)
 mod.set_parameter('s0', 1e-4)
-mod.show_params()
+#mod.set_constraints([{'type': 'ineq', 'fun': lambda p: +p.rc - p.beta}])
 
 print(mod.fit(p, statistics='chi'))
