@@ -3,7 +3,7 @@ import numpy as np
 import inspect
 import collections
 
-from fitting import chi
+from fitting import chi, cash
 from aux import call_model
 
 class FitParameter:
@@ -104,5 +104,7 @@ class Model(object):
     def fit(self, profile, statistics='cash'):
         if statistics == 'chi':
             return chi(profile, self)
+        elif statistics == 'cash':
+            return cash(profile, self)
         else:
             raise Exception('Statistics {} does not exist'.format(statistics))

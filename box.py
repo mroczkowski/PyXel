@@ -91,12 +91,14 @@ class Box(profile.Region):
 #        print("pixels in bin in get_bin_vals ", pixels_in_bin)
         npix = len(pixels_in_bin)
 
+        raw_cts = 0
         for pixel in pixels_in_bin:
             if exp_img_data[pixel[0], pixel[1]] != 0:
                 exp_val = exp_img_data[pixel[0], pixel[1]]
                 # In case the profile needed is a counts profile...
                 if only_counts:
                     exp_val = 1.
+                raw_cts += counts_img_data[pixel[0], pixel[1]]
                 src += counts_img_data[pixel[0], pixel[1]] / exp_val
                 bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val \
                     / bkg_norm_factor
@@ -117,7 +119,8 @@ class Box(profile.Region):
             err_src = np.sqrt(err_src) / npix
             err_bkg = np.sqrt(err_bkg) / npix
             exp /= npix
-            return src, err_src, bkg, err_bkg, net, err_net, npix, exp
+            print('src, bkg, net, raw_cts: ', src, bkg, net, raw_cts)
+            return raw_cts, src, err_src, bkg, err_bkg, net, err_net
 
     def bin_region(self, counts_img, bkg_img, exp_img, min_counts=None):
         if bkg_img is None:

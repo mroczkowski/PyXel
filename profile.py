@@ -70,14 +70,14 @@ class Region(object):
 
         profile = []
         for current_bin in bins:
-            src, err_src, bkg, err_bkg, net, err_net, npix, exp = \
+            raw_cts, src, err_src, bkg, err_bkg, net, err_net = \
                 self.get_bin_vals(
                     counts_img.data, bkg_img_data, bkg_norm_factor,
                     exp_img_data, current_bin[2], only_counts
                 )
-            bin_data = bin_pix2arcmin(current_bin[0], current_bin[1], src,
-                err_src, bkg, err_bkg, net, err_net, npix, pix2arcmin)
-            profile.append(bin_data + (exp,))
+            bin_data = bin_pix2arcmin(current_bin[0], current_bin[1], raw_cts,
+                src, err_src, bkg, err_bkg, net, err_net, pix2arcmin)
+            profile.append(bin_data + (raw_cts / bin_data[3],))
         return profile
 
     def counts_profile(self, counts_img, bkg_img, exp_img,
