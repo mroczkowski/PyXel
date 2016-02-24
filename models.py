@@ -19,9 +19,9 @@ class Constant(Model):
 
 class Beta(Model):
     def __init__(self):
-        s0 = ModelParameter('s0', 1e-2, 0., None)
-        beta = ModelParameter('beta', 0.7, 0., None)
-        rc = ModelParameter('rc', 0.1, 1e-12, None)
+        s0 = ModelParameter('s0', 1e-2, default_min = 1e-12, default_max = None)
+        beta = ModelParameter('beta', 0.7, default_min = 1e-12, default_max = None)
+        rc = ModelParameter('rc', 0.1, default_min = 1e-12, default_max = None)
         super(Beta, self).__init__([s0, beta, rc])
 
     def evaluate_with_params(self, x, params):
@@ -34,6 +34,5 @@ class Beta(Model):
             return -3 * params[0] * np.log(1. + (x/params[2])**2) * \
                    (1. + (x/params[2])**2) ** (0.5 - 3*params[1])
         if i == 2:
-            return -2 * params[0] * x**2 * (0.5 - 3*params[1]) / \
-                   params[2]**3 * \
-                   (1. + (x/params[2])**2) ** (-0.5 - 3*params[1])
+            return -2 * params[0] * x**2 * (0.5 - 3*params[1]) / params[2]**3 \
+                   * (1. + (x/params[2])**2) ** (-0.5 - 3*params[1])

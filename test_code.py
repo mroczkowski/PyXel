@@ -32,9 +32,24 @@ p = region.sb_profile(src_img, bkg_img, exp_img, min_counts=50)
 
 mod = Beta()
 mod.show_params()
-mod.set_parameter('beta', 1.2)
-mod.set_parameter('rc', 1.2)
-mod.set_parameter('s0', 4.5e-4)
-#mod.set_constraints([{'type': 'ineq', 'fun': lambda p: +p.rc - p.beta}])
+
+# CONVERGENCE WITH THESE CONSTRAINTS FOR CHI STATS
+#mod.set_parameter('s0', 1e-4)
+#mod.set_parameter('beta', 0.8, max_bound = 2.)
+#mod.set_parameter('rc', 0.4)
+
+# BUT THE FITTING FAILS WHEN REASONABLE UPPER BOUNDS ARE SET
+mod.set_parameter('s0', 1e-4, max_bound = 1e-2)
+mod.set_parameter('beta', 0.8, max_bound = 2.)
+mod.set_parameter('rc', 0.4)
+
+# CONVERGENCE WITH THESE CONSTRAINTS FOR CHI STATS
+#mod.set_parameter('beta', 0.8)
+#mod.set_parameter('rc', 0.4)
+#mod.set_parameter('s0', 1e-4, max_bound = 1e-2)
+
+#mod.set_constraints([{'type': 'ineq', 'fun': lambda p: p.s0},
+#                     {'type': 'ineq', 'fun': lambda p: 3. - p.beta},
+#                     {'type': 'ineq', 'fun': lambda p: p.rc}])
 
 print(mod.fit(p, statistics='cash'))

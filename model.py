@@ -101,10 +101,13 @@ class Model(object):
 #                  str('%.3e' % self.params[name].max).rjust(12))
         print()
 
-    def fit(self, profile, statistics='cash'):
+    def fit(self, profile, statistics='cash', method='L-BFGS-B',
+            min_range=-np.inf, max_range=np.inf):
         if statistics == 'chi':
-            return chi(profile, self)
+            return chi(profile, self, method=method,
+                       min_range=min_range, max_range=max_range)
         elif statistics == 'cash':
-            return cash(profile, self)
+            return cash(profile, self, method=method,
+                        min_range=min_range, max_range=max_range)
         else:
             raise Exception('Statistics {} does not exist'.format(statistics))

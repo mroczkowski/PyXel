@@ -4,12 +4,12 @@ import scipy.integrate
 
 from aux import get_data_for_chi, get_data_for_cash
 
-def do_fit(fun, model):
+def do_fit(fun, model, method='L-BFGS-B'):
     x0 = np.array([param.value for param in model.params.values()])
     bnd = [(param.min, param.max) for param in model.params.values()]
-    result = scipy.optimize.minimize(fun, x0, method='SLSQP', jac=False,
+    result = scipy.optimize.minimize(fun, x0, method=method, jac=True,
                                      bounds=bnd, constraints=model.constraints,
-                                     options={'ftol': 2.22e-9})
+                                     options={'ftol': 2.22e-9, 'disp': True})
     if not result.success:
         print(result)
         raise Exception('Fit failed: {}'.format(result.message))
@@ -17,7 +17,8 @@ def do_fit(fun, model):
         param.value = value
     return result
 
-def chi(obs_profile, model, min_range=-np.inf, max_range=+np.inf):
+def chi(obs_profile, model, method='L-BFGS-B',
+        min_range=-np.inf, max_range=+np.inf):
     """Fit a profile using least squares statistics."""
     nbins, r, w, net, net_err = get_data_for_chi(obs_profile,
                                                  min_range, max_range)
@@ -45,9 +46,10 @@ def chi(obs_profile, model, min_range=-np.inf, max_range=+np.inf):
         print('analytical jacobian: ', jac)
         return chi2, jac
 
-    return do_fit(calc_chi2, model)
+    return do_fit(calc_chi2, model, method=method)
 
-def cash(obs_profile, model, min_range=-np.inf, max_range=+np.inf):
+def cash(obs_profile, model, method='L-BFGS-B',
+         min_range=-np.inf, max_range=+np.inf):
     """Fit a profile using Cash statistics.
 
     This statistic is only valid if no background components are subtracted
@@ -79,9 +81,9 @@ def cash(obs_profile, model, min_range=-np.inf, max_range=+np.inf):
                  for x, width in zip(r, w)]) * sb_to_counts_factor
             jac[i] = 2. * np.sum((1. - raw_cts/mod_profile) * der)
         print('analytical jacobian: ', jac)
-        return cash
+        return cash, jac
 
-    return do_fit(calc_cash, model)
+    return do_fit(calc_cash, model, method=method)
 
 #def cash(obs_profile, mod_profile):
 #    nbins, r, src, npix, exp = get_data_for_cash(obs_profile)

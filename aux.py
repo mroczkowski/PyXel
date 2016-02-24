@@ -23,8 +23,8 @@ def get_data_for_chi(profile, minrange, maxrange):
     nbins = len(profile)
     r = np.array([profile[i][0] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
     w = np.array([profile[i][1] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
-    net = np.array([profile[i][6] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
-    net_err = np.array([profile[i][7] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
+    net = np.array([profile[i][7] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
+    net_err = np.array([profile[i][8] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
     return nbins, r, w, net, net_err
 
 def get_data_for_cash(profile, minrange, maxrange):
