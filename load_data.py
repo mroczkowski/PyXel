@@ -1,7 +1,6 @@
 import pyfits
 import numpy as np
 from box import Box
-from epanda import Epanda
 
 class Image():
     def __init__(self, filename, ext=0):

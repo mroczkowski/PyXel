@@ -55,4 +55,12 @@ class Epanda(profile.Region):
             for y in range(y_min_bound, y_max_bound+1):
                 ellipse_eq = (x - self.x0)**2 / self.major_axis**2 +
                              (y - self.y0)**2 / self.minor_axis**2
-                if ellipse_eq <= 1 
+                if x - self.x0 >= 0:
+                    r = np.sqrt((x - self.x0)**2 + (y - self.y0)**2)
+                    xy_angle = np.asin((y - self.y0) / r)
+                else:
+                    xy_angle = np.arctan((y - self.y0) / (x - self.x0)) + np.pi
+                if ellipse_eq <= 1:
+                    if self.start_angle <= xy_angle <= self.end_angle:
+                        pixels.append((y, x))
+        return pixels
