@@ -18,9 +18,11 @@ class Epanda(profile.Region):
        self.major_axis = major_axis
        self.minor_axis = minor_axis
        self.rot_angle = rot_angle
+       print(self.x0, self.y0, self.start_angle, self.end_angle,
+             self.major_axis, self.minor_axis, self.rot_angle)
 
     @classmethod
-    def from_params(cls, params):
+    def from_epanda_params(cls, params):
         """Make elliptical sector parameters Python-compliant.
 
         Because DS9 pixels are 1-based, while Python arrays are 0-based, 1 is
@@ -29,9 +31,49 @@ class Epanda(profile.Region):
         """
         start_angle = params[2] * np.pi / 180.
         end_angle = params[3] * np.pi / 180.
-        rot_angle = params[6] * np.pi / 180.
+        rot_angle = params[10] * np.pi / 180.
         return Epanda(params[0] - 1, params[1] - 1, start_angle, end_angle,
-                   params[4], params[5], rot_angle)
+                   params[7], params[8], rot_angle)
+
+    @classmethod
+    def from_panda_params(cls, params):
+        """Make circular sector parameters Python-compliant.
+
+        Because DS9 pixels are 1-based, while Python arrays are 0-based, 1 is
+        subtracted from the coordinates of the sector origin. The rotation angle
+        is set to 0, while the major axis is set equal to the minor axis. This
+        is simply a special case for an elliptical sector.
+        """
+        start_angle = params[2] * np.pi / 180.
+        end_angle = params[3] * np.pi / 180.
+        return Epanda(params[0] - 1, params[1] - 1, start_angle, end_angle,
+                   params[6], params[6], 0.)
+
+    @classmethod
+    def from_ellipse_params(cls, params):
+        """Make ellipse parameters Python-compliant.
+
+        Because DS9 pixels are 1-based, while Python arrays are 0-based, 1 is
+        subtracted from the coordinates of the center. This is treated as a
+        special case for an elliptical sector, so the start and end angles are
+        set to 0 and 360, respectively.
+        """
+        rot_angle = params[4] * np.pi / 180.
+        return Epanda(params[0] - 1, params[1] - 1, 0., 360.,
+                   params[2], params[3], rot_angle)
+
+    @classmethod
+    def from_circle_params(cls, params):
+        """Make circle parameters Python-compliant.
+
+        Because DS9 pixels are 1-based, while Python arrays are 0-based, 1 is
+        subtracted from the coordinates of the center. This is treated as a
+        special case for an elliptical sector, so the start and end angles are
+        set to 0 and 360, respectively, the major and minor axes are set
+        equal to the radius of the circle, and the rotation angle is set to 0.
+        """
+        return Epanda(params[0] - 1, params[1] - 1, 0., 360.,
+                   params[2], params[2], 0.)
 
     def get_bounds(self):
         x_min_bound = floor(self.x0 - self.major_axis)
@@ -53,13 +95,22 @@ class Epanda(profile.Region):
          [x_max_bound, y_max_bound]] = self.get_bounds()
         for x in range(x_min_bound, x_max_bound+1):
             for y in range(y_min_bound, y_max_bound+1):
-                ellipse_eq = (x - self.x0)**2 / self.major_axis**2 +
-                             (y - self.y0)**2 / self.minor_axis**2
-                if x - self.x0 >= 0:
-                    r = np.sqrt((x - self.x0)**2 + (y - self.y0)**2)
-                    xy_angle = np.asin((y - self.y0) / r)
+                x_rel = x - self.x0
+                y_rel = y - self.y0
+                x_rot_back, y_rot_back = rotate_point(self.x0, self.y0, x_rel,
+                                                      y_rel, -self.rot_angle)
+                ellipse_eq = (x_rot_back - self.x0)**2 / self.major_axis**2 + \
+                             (y_rot_back - self.y0)**2 / self.minor_axis**2
+                if x_rot_back - self.x0 >= 0:
+                    r = np.sqrt((x_rot_back - self.x0)**2 + \
+                                (y_rot_back - self.y0)**2)
+                    xy_angle = np.arcsin((y_rot_back - self.y0) / r)
+                    if xy_angle < 0:
+                        xy_angle = 2 * np.pi + xy_angle
+                    count1 += 1
                 else:
-                    xy_angle = np.arctan((y - self.y0) / (x - self.x0)) + np.pi
+                    xy_angle = np.arctan((y_rot_back - self.y0) /
+                                         (x_rot_back - self.x0)) + np.pi
                 if ellipse_eq <= 1:
                     if self.start_angle <= xy_angle <= self.end_angle:
                         pixels.append((y, x))

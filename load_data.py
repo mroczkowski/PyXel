@@ -1,6 +1,7 @@
 import pyfits
 import numpy as np
 from box import Box
+from epanda import Epanda
 
 class Image():
     def __init__(self, filename, ext=0):
@@ -55,7 +56,8 @@ def load_region(filename):
     """
     reg_file = open(filename)
     regions = {'box': Box.from_params,
-               'epanda': Epanda.from_params}
+               'epanda': Epanda.from_epanda_params,
+               'panda': Panda.from_panda_params}
     data = reg_file.readlines()
     if len(data) != 4 or data[2].strip() != 'image':
         error_message = ErrorMessages('002')

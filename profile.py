@@ -5,6 +5,12 @@ from SurfMessages import InfoMessages
 
 class Region(object):
 
+    def make_bins(self, min_r, max_r, nbins, islog):
+        if not islog:
+            return [(min_r + (i + 0.5) / nbins * (max_r - min_r), (max_r - min_r) / nbins / 2., 0) for i in range(nbins)]
+        else:
+            return ...
+
     def profile(self, counts_img, bkg_img, exp_img,
         min_counts, only_counts):
         """Generate count profiles.
@@ -50,7 +56,14 @@ class Region(object):
         net counts uncertainty)
         """
         pix2arcmin = counts_img.hdr['CDELT2']
-        bins = self.bin_region(counts_img, bkg_img, exp_img, min_counts)
+
+        min_r = 0.
+        max_r = 5.
+        bins = self.make_bins(min_r, max_r, (max_r - min_r) / pix2arcmin, False)
+
+        self.bin_region(counts_img, bkg_img, exp_img, bins)
+
+        bins = self.rebin(bins, min_counts)
 
         if bkg_img is None:
             bkg_img_data = np.zeros(np.shape(counts_img.data))
