@@ -56,7 +56,8 @@ def load_region(filename):
     """
     reg_file = open(filename)
     regions = {'box': Box.from_params,
-               'epanda': Epanda.from_params}
+               'epanda': Epanda.from_epanda_params,
+               'panda': Panda.from_panda_params}
     data = reg_file.readlines()
     if len(data) != 4 or data[2].strip() != 'image':
         error_message = ErrorMessages('002')

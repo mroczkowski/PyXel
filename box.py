@@ -122,7 +122,14 @@ class Box(profile.Region):
             print('src, bkg, net, raw_cts: ', src, bkg, net, raw_cts)
             return raw_cts, src, err_src, bkg, err_bkg, net, err_net
 
-    def bin_region(self, counts_img, bkg_img, exp_img, min_counts=None):
+    def bin_region(self, counts_img, bkg_img, exp_img, bins):
+
+        for x,y in self.interior_pixels():
+            r = r(x,y)
+
+            bins[find_bin(bins, r)][2] += 1.
+
+        """
         if bkg_img is None:
             bkg_img_data = np.zeros(np.shape(counts_img.data))
             bkg_norm_factor = 1
@@ -206,3 +213,4 @@ class Box(profile.Region):
                 i = 1
             #print(i, net_counts)
         return bins
+        """

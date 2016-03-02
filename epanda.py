@@ -22,7 +22,21 @@ class Epanda(profile.Region):
              self.major_axis, self.minor_axis, self.rot_angle)
 
     @classmethod
-    def from_params(cls, params):
+    def from_epanda_params(cls, params):
+        """Make elliptical sector parameters Python-compliant.
+
+        Because DS9 pixels are 1-based, while Python arrays are 0-based, 1 is
+        subtracted from the coordinates of the sector origin. The rotation angle
+        is also converted from degrees (as defined in DS9) to radians.
+        """
+        start_angle = params[2] * np.pi / 180.
+        end_angle = params[3] * np.pi / 180.
+        rot_angle = params[10] * np.pi / 180.
+        return Epanda(params[0] - 1, params[1] - 1, start_angle, end_angle,
+                   params[7], params[8], rot_angle)
+
+    @classmethod
+    def from_panda_params(cls, params):
         """Make elliptical sector parameters Python-compliant.
 
         Because DS9 pixels are 1-based, while Python arrays are 0-based, 1 is
