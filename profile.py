@@ -5,11 +5,19 @@ from SurfMessages import InfoMessages
 
 class Region(object):
 
-    def make_bins(self, min_r, max_r, nbins, islog):
+    def make_bins(self, min_r, max_r, islog):
         if not islog:
-            return [(min_r + (i + 0.5) / nbins * (max_r - min_r), (max_r - min_r) / nbins / 2., 0) for i in range(nbins)]
+            first_bin = min_r + 0.5
+            last_bin = max_r - 0.5
+            nbins = max_r - min_r
+            return [(r, 0.5) for r in np.linspace(first_bin, last_bin, nbins)]
         else:
-            return ...
+            if min_r == 0:
+                min_r = 1e-12
+            first_bin = np.log10(min_r + 0.5)
+            last_bin = np.log10(max_r - 0.5)
+            nbins =
+            return
 
     def profile(self, counts_img, bkg_img, exp_img,
         min_counts, only_counts):
