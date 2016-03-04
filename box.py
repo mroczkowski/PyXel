@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from SurfMessages import ErrorMessages, InfoMessages
-from aux import rotate_point, call_model
+from aux import rotate_point, call_model, get_edges
 import profile
 
 class Box(profile.Region):
@@ -122,35 +122,22 @@ class Box(profile.Region):
             print('src, bkg, net, raw_cts: ', src, bkg, net, raw_cts)
             return raw_cts, src, err_src, bkg, err_bkg, net, err_net
 
-    def bin_region(self, counts_img, bkg_img, exp_img, bins):
+    def rebin_data(self, counts_img, bkg_img, exp_img, min_counts, islog):
 
-        for x,y in self.interior_pixels():
-            r = r(x,y)
+        bkg_img_data, bkg_norm_factor, exp_img_data = \
+            get_bkg_exp(bkg_img, exp_img)
 
-            bins[find_bin(bins, r)][2] += 1.
+        edges = get_edges(self.height, islog)
+        start_edge = edges[0]
+        for edge in edges[1:]:
+            x0_bin_nonrotated = 0.
+            y0_bin_nonrotated = 
+            bin_def_by_edges = Box()
 
-        """
-        if bkg_img is None:
-            bkg_img_data = np.zeros(np.shape(counts_img.data))
-            bkg_norm_factor = 1
-        else:
-            bkg_img_data = bkg_img.data
-            if 'BKG_NORM' in bkg_img.hdr:
-                bkg_norm_factor = bkg_img.hdr['BKG_NORM']
-            else:
-                print(InfoMessages('003'))
-                bkg_norm_factor = 1
-
-        if exp_img is None:
-            exp_img_data = np.ones(np.shape(counts_img.data))
-        else:
-            exp_img_data = exp_img.data
-
-        bins = []
         i = 1
         while True:
             if len(bins) != 0:
-                total_height_bins = bins[-1][0] + bins[-1][1]
+                total_height_bins = bins[-1][1]
                 if total_height_bins >= self.height:
                     break
             else:
@@ -160,8 +147,7 @@ class Box(profile.Region):
             if len(bins) == 0:
                 y0_bin_nonrotated = -self.height/2 + i
             else:
-                y0_bin_nonrotated = -self.height/2 + i + \
-                                    bins[-1][0] + bins[-1][1]
+                y0_bin_nonrotated = -self.height/2 + i + bins[-1][1]
             x0_bin, y0_bin = rotate_point(self.x0, self.y0,
                                           x0_bin_nonrotated, y0_bin_nonrotated,
                                           self.angle)
