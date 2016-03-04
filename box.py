@@ -27,6 +27,15 @@ class Box(profile.Region):
         angle = params[4] * np.pi / 180.
         return Box(params[0] - 1, params[1] - 1, params[2], params[3], angle)
 
+    def bin_from_edges(start_edge, end_edge):
+        x0_bin_nonrotated = 0.
+        y0_bin_nonrotated = -self.height/2. + (start_edge + end_edge)/2.
+        x0_bin, y0_bin = rotate_point(self.x0, self.y0,
+                                      x0_bin_nonrotated, y0_bin_nonrotated,
+                                      self.angle)
+        bin_height = end_edge - start_edge
+        return Box(x0_bin, y0_bin, self.width, bin_height, self.angle)
+
     def get_corners(self):
         """Get the coordinates of the corners of a box."""
         corners = [(-self.width/2, -self.height/2),
@@ -126,77 +135,28 @@ class Box(profile.Region):
 
         bkg_img_data, bkg_norm_factor, exp_img_data = \
             get_bkg_exp(bkg_img, exp_img)
-
         edges = get_edges(self.height, islog)
-        start_edge = edges[0]
-        for edge in edges[1:]:
-            x0_bin_nonrotated = 0.
-            y0_bin_nonrotated = 
-            bin_def_by_edges = Box()
-
-        i = 1
-        while True:
-            if len(bins) != 0:
-                total_height_bins = bins[-1][1]
-                if total_height_bins >= self.height:
-                    break
-            else:
-                total_height_bins = 0
-            i = min(i, (self.height - total_height_bins) / 2)
-            x0_bin_nonrotated = 0
-            if len(bins) == 0:
-                y0_bin_nonrotated = -self.height/2 + i
-            else:
-                y0_bin_nonrotated = -self.height/2 + i + bins[-1][1]
-            x0_bin, y0_bin = rotate_point(self.x0, self.y0,
-                                          x0_bin_nonrotated, y0_bin_nonrotated,
-                                          self.angle)
-            new_bin = Box(x0_bin, y0_bin, self.width, 2*i, self.angle)
-#            print(i)
-#            print(x0_bin, y0_bin, self.width, 2*i, self.angle)
-            pixels_in_bin = new_bin.interior_pixels()
-#            print("pixels in bin: ", pixels_in_bin)
-#            print("npix in bins: ", len(pixels_in_bin))
-            if not pixels_in_bin:
-                break
-            net_counts = new_bin.get_bin_vals(counts_img.data, bkg_img_data,
-                bkg_norm_factor, exp_img_data, pixels_in_bin, only_counts=True,
-                only_net_cts=True)
+        bins = []
+        bin_start_edge = edges[0]
+        for bin_end_edge in edges[1:]:
+            bin_def_by_edges = self.bin_from_edges(bin_start_edge, bin_end_edge)
+            pixels_in_bin = bin_def_by_edges.interior_pixels()
+            net_counts = bin_def_by_edges.get_bin_vals(counts_img.data,
+                bkg_img_data, bkg_norm_factor, exp_img_data, pixels_in_bin,
+                only_counts=True, only_net_cts=True)
             if net_counts < min_counts:
-                if len(bins) != 0:
-                    # If the last bin cannot accumulate the minimum
-                    # number of counts and the end of the region has been
-                    # reached...
-                    total_height_bins = bins[-1][0] + bins[-1][1] + 2*i
-                    if total_height_bins >= self.height:
-                        bins[-1] = new_bin.update_last_bin(bins[-1],
-                            pixels_in_bin)
-                        break
-                    # ... otherwise increase the width of the bin a little more.
-                    else:
-                        i += 1
-                # If no bins with the minimum number of counts have been found
-                # and the end of the bin has been reached, then throw an error
-                # message.
-                elif 2*i >= self.height:
+                if bin_end_edge == edges[-1] and len(bins) != 0:
+                    bins[-1] = bin_def_by_edges.update_last_bin(
+                                                    bins[-1], pixels_in_bin)
+                    break
+                else if bin_end_edge == edges[-1] and len(bins) == 0:
                     error_message = ErrorMessages('001')
                     raise ValueError(error_message)
-                # If the profile is currently empty but the width of the bin
-                # is smaller than the width of the region, then just increase
-                # the bin width.
                 else:
-                    i += 1
-            # If the minimum number of counts has been reached, then simply
-            # add the previously calculated bin values to the surface brightness
-            # profile.
+                    continue
             else:
-                if len(bins) != 0:
-                    bin_radius = bins[-1][0] + bins[-1][1] + \
-                        new_bin.height/2
-                else:
-                    bin_radius = new_bin.height/2
-                bins.append((bin_radius, new_bin.height/2, pixels_in_bin))
-                i = 1
-            #print(i, net_counts)
+                bin_radius = (bin_start_edge + bin_end_edge) / 2.
+                bins.append((bin_radius, bin_def_by_edges.height/2.,
+                             pixels_in_bin))
+                bin_start_edge = bin_end_edge
         return bins
-        """

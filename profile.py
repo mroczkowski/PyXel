@@ -6,7 +6,7 @@ from SurfMessages import InfoMessages
 class Region(object):
 
     def profile(self, counts_img, bkg_img, exp_img,
-        min_counts, only_counts):
+        min_counts, only_counts, islog):
         """Generate count profiles.
 
         The box is divided into bins based on a minimum number of counts or a
@@ -49,55 +49,34 @@ class Region(object):
         background counts, background counts uncertainty, net counts,
         net counts uncertainty)
         """
+        bkg_img_data, bkg_norm_factor, exp_img_data = \
+            get_bkg_exp(bkg_img, exp_img)
         pix2arcmin = counts_img.hdr['CDELT2']
 
-        min_r = 0.
-        max_r = 5.
-        bins = self.make_bins(min_r, max_r, (max_r - min_r) / pix2arcmin, False)
-
-        self.bin_region(counts_img, bkg_img, exp_img, bins)
-
-        bins = self.rebin(bins, min_counts)
-
-        if bkg_img is None:
-            bkg_img_data = np.zeros(np.shape(counts_img.data))
-            bkg_norm_factor = 1
-        else:
-            bkg_img_data = bkg_img.data
-            if 'BKG_NORM' in bkg_img.hdr:
-                bkg_norm_factor = bkg_img.hdr['BKG_NORM']
-            else:
-                print(InfoMessages('003'))
-                bkg_norm_factor = 1
-
-        if exp_img is None:
-            exp_img_data = np.ones(np.shape(counts_img.data))
-        else:
-            exp_img_data = exp_img.data
+        bins = self.rebin_data(counts_img, bkg_img, exp_img, min_counts, islog)
 
         profile = []
         for current_bin in bins:
             raw_cts, src, err_src, bkg, err_bkg, net, err_net = \
                 self.get_bin_vals(
                     counts_img.data, bkg_img_data, bkg_norm_factor,
-                    exp_img_data, current_bin[2], only_counts
-                )
+                    exp_img_data, current_bin[2], only_counts)
             bin_data = bin_pix2arcmin(current_bin[0], current_bin[1], raw_cts,
                 src, err_src, bkg, err_bkg, net, err_net, pix2arcmin)
             profile.append(bin_data + (raw_cts / bin_data[3],))
         return profile
 
     def counts_profile(self, counts_img, bkg_img, exp_img,
-        min_counts=100, only_counts=True):
+        min_counts=100, only_counts=True, islog=True):
         """some docstring"""
         return self.profile(counts_img, bkg_img, exp_img,
-            min_counts, only_counts=True)
+            min_counts, only_counts=True, islog=True)
 
     def sb_profile(self, counts_img, bkg_img, exp_img,
-        min_counts=100, only_counts=False):
+        min_counts=100, only_counts=False, islog=True):
         """some docstring"""
         return self.profile(counts_img, bkg_img, exp_img,
-            min_counts, only_counts=False)
+            min_counts, only_counts=False, islog=True)
 
     def plot_profile(self, profile, xlog=True, ylog=True,
         xlims=None, ylims=None, xlabel=None, ylabel=None,
