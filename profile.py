@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from aux import rotate_point, bin_pix2arcmin, call_model
+from aux import rotate_point, bin_pix2arcmin, call_model, get_bkg_exp
 from SurfMessages import InfoMessages
 
 class Region(object):
 
     def profile(self, counts_img, bkg_img, exp_img,
-        min_counts, only_counts, islog):
+        min_counts, only_counts, islog=True):
         """Generate count profiles.
 
         The box is divided into bins based on a minimum number of counts or a
@@ -70,17 +70,17 @@ class Region(object):
         min_counts=100, only_counts=True, islog=True):
         """some docstring"""
         return self.profile(counts_img, bkg_img, exp_img,
-            min_counts, only_counts=True, islog=True)
+            min_counts, only_counts=True, islog=islog)
 
     def sb_profile(self, counts_img, bkg_img, exp_img,
         min_counts=100, only_counts=False, islog=True):
         """some docstring"""
         return self.profile(counts_img, bkg_img, exp_img,
-            min_counts, only_counts=False, islog=True)
+            min_counts, only_counts=False, islog=islog)
 
     def plot_profile(self, profile, xlog=True, ylog=True,
         xlims=None, ylims=None, xlabel=None, ylabel=None,
-        with_model=False, model_name=None, model_params=None):
+        model_name=None, model=None):
         """Plot profile and (optional) fitted model.
 
         Plots the net count profile (with error bars) and the background
@@ -95,10 +95,11 @@ class Region(object):
         r = np.array([profile[i][0] for i in range(nbins)])
         r_err = np.array([profile[i][1] for i in range(nbins)])
 
-        bkg = np.array([profile[i][4] for i in range(nbins)])
-        net_cts = np.array([profile[i][6] for i in range(nbins)])
-        err_net_cts = np.array([profile[i][7] for i in range(nbins)])
+        bkg = np.array([profile[i][5] for i in range(nbins)])
+        net_cts = np.array([profile[i][7] for i in range(nbins)])
+        err_net_cts = np.array([profile[i][8] for i in range(nbins)])
 
+        print(net_cts, err_net_cts)
         plt.scatter(r, net_cts, c="black", alpha=0.85, s=35, marker="s")
         plt.errorbar(r, net_cts, xerr=r_err, yerr=err_net_cts,
                      linestyle="None", color="black")
@@ -121,18 +122,16 @@ class Region(object):
             plt.ylim([ylims[0], ylims[1]])
 
         if xlog:
-            print("hello")
             plt.semilogx()
 
         if ylog:
             plt.semilogy()
 
-        if with_model:
+        if model is not None and model_name is not None:
             if not model_name:
                 raise Exception("No model is defined.")
             else:
-                print(model_params)
-                model = call_model(model_name)(r, *model_params)
-                plt.plot(r, model, color="r", linewidth=3, alpha=0.75)
+                evaluated_model = model.evaluate(r)
+                plt.plot(r, evaluated_model, color="r", linewidth=3, alpha=0.75)
 
         plt.show()

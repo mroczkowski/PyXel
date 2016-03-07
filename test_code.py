@@ -5,27 +5,27 @@ import matplotlib.pyplot as plt
 from models import Beta
 #from profile import Box #, counts_profile
 
-src_img = Image("srcfree_bin4_500-4000_band1_thresh.img").data
+src_img = Image("srcfree_bin4_500-4000_band1_thresh.img")
 bkg_img = Image("srcfree_bin4_500-4000_bgstow_renorm.img")
 exp_img = Image("srcfree_bin4_500-4000_thresh.expmap_nosrcedg")
 
-print(type(src_img))
-region = load_region("ell_sector.reg")
+region = load_region("beta.reg")
 
-pixels = region.interior_pixels()
-for pixel in pixels:
-    src_img[pixel[0], pixel[1]] = 5000.
+# pixels = region.interior_pixels()
+# for pixel in pixels:
+#   src_img.data[pixel[0], pixel[1]] = 5000.
 
-pyfits.writeto('test.fits', src_img, clobber=True)
+pyfits.writeto('test.fits', src_img.data, clobber=True)
 
-# # Plot counts profile.
-# p = region.sb_profile(src_img, bkg_img, exp_img, min_counts=50)
+ # Plot counts profile.
+p = region.sb_profile(src_img, bkg_img, exp_img, min_counts=50)
 
-# model = Model("beta").fit(p, guess, method='leastsq')
-# region.plot_profile(p, xlog=True, ylog=True, \
-#     with_model=True, model_name="beta", model_params=model, \
-#     xlabel=r"Distance (arcmin)", \
-#     ylabel=r"photons s$^{-1}$ cm$^{-2}$ pixel$^{-1}$")
+mod = Beta()
+print(mod.fit(p, statistics='cash'))
+region.plot_profile(p, xlog=True, ylog=True, \
+    model_name="beta", model=mod, \
+    xlabel=r"Distance (arcmin)", \
+    ylabel=r"photons s$^{-1}$ cm$^{-2}$ pixel$^{-1}$")
 #
 #
 # mod = Model("beta") + Model("const")

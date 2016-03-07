@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from SurfMessages import ErrorMessages, InfoMessages
-from aux import rotate_point, call_model, get_edges
+from aux import rotate_point, call_model, get_edges, get_bkg_exp
 import profile
 
 class Box(profile.Region):
@@ -27,13 +27,14 @@ class Box(profile.Region):
         angle = params[4] * np.pi / 180.
         return Box(params[0] - 1, params[1] - 1, params[2], params[3], angle)
 
-    def bin_from_edges(start_edge, end_edge):
+    def bin_from_edges(self, start_edge, end_edge):
         x0_bin_nonrotated = 0.
         y0_bin_nonrotated = -self.height/2. + (start_edge + end_edge)/2.
         x0_bin, y0_bin = rotate_point(self.x0, self.y0,
                                       x0_bin_nonrotated, y0_bin_nonrotated,
                                       self.angle)
         bin_height = end_edge - start_edge
+        print(x0_bin, y0_bin, bin_height, self.width, self.angle)
         return Box(x0_bin, y0_bin, self.width, bin_height, self.angle)
 
     def get_corners(self):
@@ -131,11 +132,12 @@ class Box(profile.Region):
             print('src, bkg, net, raw_cts: ', src, bkg, net, raw_cts)
             return raw_cts, src, err_src, bkg, err_bkg, net, err_net
 
-    def rebin_data(self, counts_img, bkg_img, exp_img, min_counts, islog):
+    def rebin_data(self, counts_img, bkg_img, exp_img, min_counts, islog=True):
 
         bkg_img_data, bkg_norm_factor, exp_img_data = \
             get_bkg_exp(bkg_img, exp_img)
         edges = get_edges(self.height, islog)
+        print('edges:', edges)
         bins = []
         bin_start_edge = edges[0]
         for bin_end_edge in edges[1:]:
@@ -149,7 +151,7 @@ class Box(profile.Region):
                     bins[-1] = bin_def_by_edges.update_last_bin(
                                                     bins[-1], pixels_in_bin)
                     break
-                else if bin_end_edge == edges[-1] and len(bins) == 0:
+                elif bin_end_edge == edges[-1] and len(bins) == 0:
                     error_message = ErrorMessages('001')
                     raise ValueError(error_message)
                 else:
