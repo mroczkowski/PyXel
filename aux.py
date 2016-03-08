@@ -7,9 +7,10 @@ def rotate_point(x0, y0, x, y, angle):
     y_rot = y0 + x * np.sin(angle) + y * np.cos(angle)
     return (x_rot, y_rot)
 
-def bin_pix2arcmin(bin_r, bin_width, raw_cts, src, err_src, bkg, err_bkg,
-    net, err_net, pix2arcmin):
+def bin_pix2arcmin(bin_values, pix2arcmin):
     '''blah blah'''
+    bin_r, bin_width, raw_cts, src, err_src, bkg, err_bkg, \
+        net, err_net = bin_values
     bin_r = bin_r * pix2arcmin * 60.
     bin_width = bin_width * pix2arcmin * 60.
     src = src / pix2arcmin**2 / 3600.
@@ -18,7 +19,9 @@ def bin_pix2arcmin(bin_r, bin_width, raw_cts, src, err_src, bkg, err_bkg,
     err_bkg = err_bkg / pix2arcmin**2 / 3600.
     net = net / pix2arcmin**2 / 3600.
     err_net = err_net / pix2arcmin**2 / 3600.
-    return (bin_r, bin_width, raw_cts, src, err_src, bkg, err_bkg, net, err_net)
+    sb_to_counts_factor = raw_cts / src
+    return (bin_r, bin_width, raw_cts, src, err_src,
+            bkg, err_bkg, net, err_net, sb_to_counts_factor)
 
 def get_bkg_exp(bkg_img, exp_img):
     if bkg_img is None:

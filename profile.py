@@ -5,8 +5,48 @@ from SurfMessages import InfoMessages
 
 class Region(object):
 
+    def get_bin_vals(self, counts_img_data, bkg_img_data, bkg_norm_factor,
+        exp_img_data, pixels_in_bin, only_counts=False, only_net_cts=False):
+        """Calculate the number of counts in a bin."""
+        src = 0
+        bkg = 0
+        err_src = 0
+        err_bkg = 0
+        exp = 0
+        npix = len(pixels_in_bin)
+        raw_cts = 0
+        
+        for pixel in pixels_in_bin:
+            if exp_img_data[pixel[0], pixel[1]] != 0:
+                exp_val = exp_img_data[pixel[0], pixel[1]]
+                # In case the profile needed is a counts profile...
+                if only_counts:
+                    exp_val = 1.
+                raw_cts += counts_img_data[pixel[0], pixel[1]]
+                src += counts_img_data[pixel[0], pixel[1]] / exp_val
+                bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val \
+                    / bkg_norm_factor
+                err_src += counts_img_data[pixel[0], pixel[1]] / exp_val**2
+                err_bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val**2 \
+                    / bkg_norm_factor**2
+                exp += exp_val
+
+        net = src - bkg
+
+        if only_net_cts:
+            return net
+        else:
+            net = net / npix
+            src = src / npix
+            bkg = bkg / npix
+            err_net = np.sqrt(err_src + err_bkg) / npix
+            err_src = np.sqrt(err_src) / npix
+            err_bkg = np.sqrt(err_bkg) / npix
+            exp /= npix
+            return raw_cts, src, err_src, bkg, err_bkg, net, err_net
+
     def profile(self, counts_img, bkg_img, exp_img,
-        min_counts, only_counts, islog=True):
+        min_counts=100, only_counts=False, islog=True):
         """Generate count profiles.
 
         The box is divided into bins based on a minimum number of counts or a
@@ -53,17 +93,22 @@ class Region(object):
             get_bkg_exp(bkg_img, exp_img)
         pix2arcmin = counts_img.hdr['CDELT2']
 
-        bins = self.rebin_data(counts_img, bkg_img, exp_img, min_counts, islog)
+        bins = self.merge_bins(counts_img, bkg_img, exp_img, min_counts, islog)
 
         profile = []
+        print('PROFILE:')
         for current_bin in bins:
             raw_cts, src, err_src, bkg, err_bkg, net, err_net = \
                 self.get_bin_vals(
                     counts_img.data, bkg_img_data, bkg_norm_factor,
-                    exp_img_data, current_bin[2], only_counts)
-            bin_data = bin_pix2arcmin(current_bin[0], current_bin[1], raw_cts,
-                src, err_src, bkg, err_bkg, net, err_net, pix2arcmin)
-            profile.append(bin_data + (raw_cts / bin_data[3],))
+                    exp_img_data, current_bin[2], only_counts=only_counts)
+            bin_radius = (current_bin[0] + current_bin[1]) / 2.
+            bin_width = current_bin[1] - bin_radius
+            bin_values = (bin_radius, bin_width, raw_cts, src, err_src,
+                          bkg, err_bkg, net, err_net)
+            bin_values = bin_pix2arcmin(bin_values, pix2arcmin)
+            profile.append(bin_values)
+            print(bin_values)
         return profile
 
     def counts_profile(self, counts_img, bkg_img, exp_img,
@@ -99,7 +144,6 @@ class Region(object):
         net_cts = np.array([profile[i][7] for i in range(nbins)])
         err_net_cts = np.array([profile[i][8] for i in range(nbins)])
 
-        print(net_cts, err_net_cts)
         plt.scatter(r, net_cts, c="black", alpha=0.85, s=35, marker="s")
         plt.errorbar(r, net_cts, xerr=r_err, yerr=err_net_cts,
                      linestyle="None", color="black")

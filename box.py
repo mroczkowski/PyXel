@@ -27,16 +27,6 @@ class Box(profile.Region):
         angle = params[4] * np.pi / 180.
         return Box(params[0] - 1, params[1] - 1, params[2], params[3], angle)
 
-    def bin_from_edges(self, start_edge, end_edge):
-        x0_bin_nonrotated = 0.
-        y0_bin_nonrotated = -self.height/2. + (start_edge + end_edge)/2.
-        x0_bin, y0_bin = rotate_point(self.x0, self.y0,
-                                      x0_bin_nonrotated, y0_bin_nonrotated,
-                                      self.angle)
-        bin_height = end_edge - start_edge
-        print(x0_bin, y0_bin, bin_height, self.width, self.angle)
-        return Box(x0_bin, y0_bin, self.width, bin_height, self.angle)
-
     def get_corners(self):
         """Get the coordinates of the corners of a box."""
         corners = [(-self.width/2, -self.height/2),
@@ -48,18 +38,10 @@ class Box(profile.Region):
 #        print(rotated_corners)
         return rotated_corners
 
-    # Return an array containing the coordinates of the points inside
-    # the region of interest.
-    def interior_pixels(self):
-        """Find the pixels inside a box.
+    def make_edges(self, islog):
+        return get_edges(self.height, islog)
 
-        Returns an array of tuples containing the coordinates (row, col) of the
-        pixels whose centers are within a certain box region. This works okay
-        for most regions. However, for boxes rotated by a multiple of 90 deg and
-        whose edges go precisely through the middle of the corresponding pixels,
-        those pixels are not included in the box. While this is a very special
-        case, it causes about half of the pixels to be ignored.
-        """
+    def distribute_pixels(self, edges):
         corners = self.get_corners()
         reg_path = Path(corners)
         # Get region boundaries.
@@ -70,95 +52,56 @@ class Box(profile.Region):
         y_min_bound = floor(y_min_bound)
         x_max_bound = ceil(x_max_bound)
         y_max_bound = ceil(y_max_bound)
-        pixels = []
+        pixels_in_bins = []
         for x in range(x_min_bound, x_max_bound+1):
             for y in range(y_min_bound, y_max_bound+1):
                 if reg_path.contains_point((x, y)):
-                    pixels.append((y, x))
-        return pixels
+                    x_nonrotated, y_nonrotated = rotate_point(self.x0, self.y0,
+                                                              x - self.x0,
+                                                              y - self.y0,
+                                                              -self.angle)
+                    dist_from_box_bottom = self.height/2. - \
+                                           (self.y0 - y_nonrotated)
+                    for i, edge in enumerate(edges[1:]):
+                        if edge > dist_from_box_bottom:
+                            pixels_in_bins.append((y, x, i))
+                            break
+        return pixels_in_bins
 
-    def update_last_bin(self, prev_bin, current_bin_pixels):
-        """Update the last bin of the profile.
-
-        If the last bin cannot accumulate enough counts before the end of the
-        region is reached, then the previous bin's radius and width are
-        increased to include the remaining area. The pixel lists are merged.
-        """
-        new_bin_radius = prev_bin[0] + self.height / 2.
-        new_bin_height = prev_bin[1] + self.height / 2.
-        prev_bin[2].extend(current_bin_pixels)
-        return (new_bin_radius, new_bin_height, prev_bin[2])
-
-    def get_bin_vals(self, counts_img_data, bkg_img_data, bkg_norm_factor,
-        exp_img_data, pixels_in_bin, only_counts=False, only_net_cts=False):
-        """Calculate the number of counts in a bin."""
-        src = 0
-        bkg = 0
-        err_src = 0
-        err_bkg = 0
-        exp = 0
-
-#        print("pixels in bin in get_bin_vals ", pixels_in_bin)
-        npix = len(pixels_in_bin)
-
-        raw_cts = 0
-        for pixel in pixels_in_bin:
-            if exp_img_data[pixel[0], pixel[1]] != 0:
-                exp_val = exp_img_data[pixel[0], pixel[1]]
-                # In case the profile needed is a counts profile...
-                if only_counts:
-                    exp_val = 1.
-                raw_cts += counts_img_data[pixel[0], pixel[1]]
-                src += counts_img_data[pixel[0], pixel[1]] / exp_val
-                bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val \
-                    / bkg_norm_factor
-                err_src += counts_img_data[pixel[0], pixel[1]] / exp_val**2
-                err_bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val**2 \
-                    / bkg_norm_factor**2
-                exp += exp_val
-
-        net = src - bkg
-
-        if only_net_cts:
-            return net
-        else:
-            net = net / npix
-            src = src / npix
-            bkg = bkg / npix
-            err_net = np.sqrt(err_src + err_bkg) / npix
-            err_src = np.sqrt(err_src) / npix
-            err_bkg = np.sqrt(err_bkg) / npix
-            exp /= npix
-            print('src, bkg, net, raw_cts: ', src, bkg, net, raw_cts)
-            return raw_cts, src, err_src, bkg, err_bkg, net, err_net
-
-    def rebin_data(self, counts_img, bkg_img, exp_img, min_counts, islog=True):
-
+    def merge_bins(self, counts_img, bkg_img, exp_img, min_counts, islog=True):
         bkg_img_data, bkg_norm_factor, exp_img_data = \
             get_bkg_exp(bkg_img, exp_img)
-        edges = get_edges(self.height, islog)
-        print('edges:', edges)
+        edges = self.make_edges(islog)
+        print('edges = ', edges)
+        pixels_in_bins = self.distribute_pixels(edges)
+        nbins = len(edges) - 1
+        npix = len(pixels_in_bins)
         bins = []
-        bin_start_edge = edges[0]
-        for bin_end_edge in edges[1:]:
-            bin_def_by_edges = self.bin_from_edges(bin_start_edge, bin_end_edge)
-            pixels_in_bin = bin_def_by_edges.interior_pixels()
-            net_counts = bin_def_by_edges.get_bin_vals(counts_img.data,
-                bkg_img_data, bkg_norm_factor, exp_img_data, pixels_in_bin,
-                only_counts=True, only_net_cts=True)
+        start_edge = edges[0]
+        end_edge = edges[1]
+        pixels_in_current_bin = []
+        for i in range(nbins):
+            end_edge = edges[i+1]
+            pixels_in_current_bin.extend(
+                    [(pixels_in_bins[j][0], pixels_in_bins[j][1])
+                      for j in range(npix) if pixels_in_bins[j][2] == i])
+            net_counts = self.get_bin_vals(counts_img.data,
+                bkg_img_data, bkg_norm_factor, exp_img_data,
+                pixels_in_current_bin, only_counts=True, only_net_cts=True)
+            print('net_counts = ', net_counts)
             if net_counts < min_counts:
-                if bin_end_edge == edges[-1] and len(bins) != 0:
-                    bins[-1] = bin_def_by_edges.update_last_bin(
-                                                    bins[-1], pixels_in_bin)
-                    break
-                elif bin_end_edge == edges[-1] and len(bins) == 0:
+                if end_edge == edges[-1] and len(bins) != 0:
+                    bins[-1][2].extend(pixels_in_current_bin)
+                    updated_last_bin = (bins[-1][0], end_edge, bins[-1][2])
+                    list(bins)[-1] = updated_last_bin
+                elif end_edge == edges[-1] and len(bins) == 0:
                     error_message = ErrorMessages('001')
                     raise ValueError(error_message)
                 else:
                     continue
             else:
-                bin_radius = (bin_start_edge + bin_end_edge) / 2.
-                bins.append((bin_radius, bin_def_by_edges.height/2.,
-                             pixels_in_bin))
-                bin_start_edge = bin_end_edge
+                print(start_edge, end_edge, pixels_in_current_bin)
+                bins.append((start_edge, end_edge, pixels_in_current_bin))
+                start_edge = end_edge
+                pixels_in_current_bin = []
         return bins

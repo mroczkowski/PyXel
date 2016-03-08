@@ -11,10 +11,6 @@ exp_img = Image("srcfree_bin4_500-4000_thresh.expmap_nosrcedg")
 
 region = load_region("beta.reg")
 
-# pixels = region.interior_pixels()
-# for pixel in pixels:
-#   src_img.data[pixel[0], pixel[1]] = 5000.
-
 pyfits.writeto('test.fits', src_img.data, clobber=True)
 
  # Plot counts profile.
