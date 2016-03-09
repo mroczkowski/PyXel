@@ -4,8 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from SurfMessages import ErrorMessages, InfoMessages
-from aux import rotate_point, call_model
+from aux import rotate_point, get_edges
 import profile
+import datetime
 
 class Epanda(profile.Region):
     """Generate elliptical sector."""
@@ -75,15 +76,10 @@ class Epanda(profile.Region):
         return Epanda(params[0] - 1, params[1] - 1, 0., 360.,
                    params[2], params[2], 0.)
 
-    def get_bounds(self):
-        x_min_bound = floor(self.x0 - self.major_axis)
-        x_max_bound = floor(self.x0 + self.major_axis)
-        y_min_bound = ceil(self.y0 - self.major_axis)
-        y_max_bound = ceil(self.y0 + self.major_axis)
-        bounds = [[x_min_bound, y_min_bound], [x_max_bound, y_max_bound]]
-        return bounds
+    def make_edges(self, islog):
+        return get_edges(self.major_axis, islog)
 
-    def interior_pixels(self, start_edge, end_edge):
+    def distribute_pixels(self, edges):
         """Find the pixels inside an elliptical sector annulus.
 
         Returns an array of tuples containing the coordinates (row, col) of the
@@ -91,88 +87,41 @@ class Epanda(profile.Region):
         sector.
         """
         pixels = []
-        [[x_min_bound, y_min_bound],
-         [x_max_bound, y_max_bound]] = self.get_bounds()
-        for x in range(x_min_bound, x_max_bound+1):
-            for y in range(y_min_bound, y_max_bound+1):
-                x_rel = x - self.x0
-                y_rel = y - self.y0
-                x_rot_back, y_rot_back = rotate_point(self.x0, self.y0, x_rel,
-                                                      y_rel, -self.rot_angle)
-                minor_end_edge = end_edge / self.major_axis * self.minor_axis
-                minor_start_edge = start_edge / self.major_axis * \
-                                   self.minor_axis
-                outer_ellipse_eq = (x_rot_back - self.x0)**2 / end_edge**2 + \
-                                   (y_rot_back - self.y0)**2 / minor_end_edge**2
-                inner_ellipse_eq = (x_rot_back - self.x0)**2 / start_edge**2 + \
-                                   (y_rot_back - self.y0)**2 / \
-                                   minor_start_edge**2
-                if x_rot_back - self.x0 >= 0:
-                    r = np.sqrt((x_rot_back - self.x0)**2 + \
-                                (y_rot_back - self.y0)**2)
-                    xy_angle = np.arcsin((y_rot_back - self.y0) / r)
-                    if xy_angle < 0:
-                        xy_angle = 2 * np.pi + xy_angle
-                else:
-                    xy_angle = np.arctan((y_rot_back - self.y0) /
-                                         (x_rot_back - self.x0)) + np.pi
-                if outer_ellipse_eq < 1 and inner_ellipse_eq >= 1:
-                    if self.start_angle <= xy_angle <= self.end_angle:
-                        pixels.append((y, x))
+        x_min_bound = floor(self.x0 - self.major_axis)
+        x_max_bound = floor(self.x0 + self.major_axis)
+        y_min_bound = ceil(self.y0 - self.major_axis)
+        y_max_bound = ceil(self.y0 + self.major_axis)
+        for i, (start_edge, end_edge) in enumerate(zip(edges[:-1], edges[1:])):
+            print(datetime.datetime.now().time())
+            for x in range(x_min_bound, x_max_bound+1):
+                for y in range(y_min_bound, y_max_bound+1):
+                    x_rel = x - self.x0
+                    y_rel = y - self.y0
+                    x_rot_back, y_rot_back = rotate_point(self.x0, self.y0,
+                                                          x_rel, y_rel,
+                                                          -self.rot_angle)
+                    minor_end_edge = end_edge / self.major_axis * \
+                                     self.minor_axis
+                    minor_start_edge = start_edge / self.major_axis * \
+                                       self.minor_axis
+                    outer_ellipse_eq = (x_rot_back - self.x0)**2 / \
+                                            end_edge**2 + \
+                                       (y_rot_back - self.y0)**2 / \
+                                            minor_end_edge**2
+                    inner_ellipse_eq = (x_rot_back - self.x0)**2 / \
+                                            start_edge**2 +\
+                                       (y_rot_back - self.y0)**2 / \
+                                            minor_start_edge**2
+                    if x_rot_back - self.x0 >= 0:
+                        r = np.sqrt((x_rot_back - self.x0)**2 + \
+                                    (y_rot_back - self.y0)**2)
+                        xy_angle = np.arcsin((y_rot_back - self.y0) / r)
+                        if xy_angle < 0:
+                            xy_angle = 2 * np.pi + xy_angle
+                    else:
+                        xy_angle = np.arctan((y_rot_back - self.y0) /
+                                             (x_rot_back - self.x0)) + np.pi
+                    if outer_ellipse_eq < 1 and inner_ellipse_eq >= 1:
+                        if self.start_angle <= xy_angle <= self.end_angle:
+                            pixels.append((y, x, i))
         return pixels
-
-    def get_bin_vals(self, counts_img_data, bkg_img_data, bkg_norm_factor,
-        exp_img_data, pixels_in_bin, only_counts=False, only_net_cts=False):
-        """Calculate the number of counts in a bin."""
-        src = 0
-        bkg = 0
-        err_src = 0
-        err_bkg = 0
-        exp = 0
-
-#        print("pixels in bin in get_bin_vals ", pixels_in_bin)
-        npix = len(pixels_in_bin)
-
-        raw_cts = 0
-        for pixel in pixels_in_bin:
-            if exp_img_data[pixel[0], pixel[1]] != 0:
-                exp_val = exp_img_data[pixel[0], pixel[1]]
-                # In case the profile needed is a counts profile...
-                if only_counts:
-                    exp_val = 1.
-                raw_cts += counts_img_data[pixel[0], pixel[1]]
-                src += counts_img_data[pixel[0], pixel[1]] / exp_val
-                bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val \
-                    / bkg_norm_factor
-                err_src += counts_img_data[pixel[0], pixel[1]] / exp_val**2
-                err_bkg += bkg_img_data[pixel[0], pixel[1]] / exp_val**2 \
-                    / bkg_norm_factor**2
-                exp += exp_val
-
-        net = src - bkg
-
-        if only_net_cts:
-            return net
-        else:
-            net = net / npix
-            src = src / npix
-            bkg = bkg / npix
-            err_net = np.sqrt(err_src + err_bkg) / npix
-            err_src = np.sqrt(err_src) / npix
-            err_bkg = np.sqrt(err_bkg) / npix
-            exp /= npix
-            print('src, bkg, net, raw_cts: ', src, bkg, net, raw_cts)
-            return raw_cts, src, err_src, bkg, err_bkg, net, err_net
-
-    def rebin_data(self, counts_img, bkg_img, exp_img, min_counts, islog=True):
-        bkg_img_data, bkg_norm_factor, exp_img_data = \
-            get_bkg_exp(bkg_img, exp_img)
-        edges = get_edges(self.major_axis, islog)
-        raw_bins = self.distribute_pixels(edges)
-        rollovered_pixels = []
-        for bin in raw_bins:
-            pixels_in_bin = bin[2] + rollovered_pixels
-            net_counts = self.get_bin_vals(counts_img.data,
-                bkg_img_data, bkg_norm_factor, exp_img_data, pixels_in_bin,
-                only_counts=True, only_net_cts=True)
-            if net_counts < min_counts:

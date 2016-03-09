@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from SurfMessages import ErrorMessages, InfoMessages
-from aux import rotate_point, call_model, get_edges, get_bkg_exp
+from aux import rotate_point, get_edges
 import profile
 
 class Box(profile.Region):
@@ -67,41 +67,3 @@ class Box(profile.Region):
                             pixels_in_bins.append((y, x, i))
                             break
         return pixels_in_bins
-
-    def merge_bins(self, counts_img, bkg_img, exp_img, min_counts, islog=True):
-        bkg_img_data, bkg_norm_factor, exp_img_data = \
-            get_bkg_exp(bkg_img, exp_img)
-        edges = self.make_edges(islog)
-        print('edges = ', edges)
-        pixels_in_bins = self.distribute_pixels(edges)
-        nbins = len(edges) - 1
-        npix = len(pixels_in_bins)
-        bins = []
-        start_edge = edges[0]
-        end_edge = edges[1]
-        pixels_in_current_bin = []
-        for i in range(nbins):
-            end_edge = edges[i+1]
-            pixels_in_current_bin.extend(
-                    [(pixels_in_bins[j][0], pixels_in_bins[j][1])
-                      for j in range(npix) if pixels_in_bins[j][2] == i])
-            net_counts = self.get_bin_vals(counts_img.data,
-                bkg_img_data, bkg_norm_factor, exp_img_data,
-                pixels_in_current_bin, only_counts=True, only_net_cts=True)
-            print('net_counts = ', net_counts)
-            if net_counts < min_counts:
-                if end_edge == edges[-1] and len(bins) != 0:
-                    bins[-1][2].extend(pixels_in_current_bin)
-                    updated_last_bin = (bins[-1][0], end_edge, bins[-1][2])
-                    list(bins)[-1] = updated_last_bin
-                elif end_edge == edges[-1] and len(bins) == 0:
-                    error_message = ErrorMessages('001')
-                    raise ValueError(error_message)
-                else:
-                    continue
-            else:
-                print(start_edge, end_edge, pixels_in_current_bin)
-                bins.append((start_edge, end_edge, pixels_in_current_bin))
-                start_edge = end_edge
-                pixels_in_current_bin = []
-        return bins

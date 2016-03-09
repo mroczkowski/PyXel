@@ -9,7 +9,7 @@ src_img = Image("srcfree_bin4_500-4000_band1_thresh.img")
 bkg_img = Image("srcfree_bin4_500-4000_bgstow_renorm.img")
 exp_img = Image("srcfree_bin4_500-4000_thresh.expmap_nosrcedg")
 
-region = load_region("beta.reg")
+region = load_region("ell_sector.reg")
 
 pyfits.writeto('test.fits', src_img.data, clobber=True)
 

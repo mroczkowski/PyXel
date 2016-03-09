@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from aux import rotate_point, bin_pix2arcmin, call_model, get_bkg_exp
+from aux import rotate_point, bin_pix2arcmin, get_bkg_exp
 from SurfMessages import InfoMessages
 
 class Region(object):
@@ -15,7 +15,7 @@ class Region(object):
         exp = 0
         npix = len(pixels_in_bin)
         raw_cts = 0
-        
+
         for pixel in pixels_in_bin:
             if exp_img_data[pixel[0], pixel[1]] != 0:
                 exp_val = exp_img_data[pixel[0], pixel[1]]
@@ -44,6 +44,43 @@ class Region(object):
             err_bkg = np.sqrt(err_bkg) / npix
             exp /= npix
             return raw_cts, src, err_src, bkg, err_bkg, net, err_net
+
+    def merge_bins(self, counts_img, bkg_img, exp_img, min_counts, islog=True):
+        bkg_img_data, bkg_norm_factor, exp_img_data = \
+            get_bkg_exp(bkg_img, exp_img)
+        edges = self.make_edges(islog)
+        pixels_in_bins = self.distribute_pixels(edges)
+        nbins = len(edges) - 1
+        npix = len(pixels_in_bins)
+        bins = []
+        start_edge = edges[0]
+        end_edge = edges[1]
+        pixels_in_current_bin = []
+        for i in range(nbins):
+            end_edge = edges[i+1]
+            pixels_in_current_bin.extend(
+                    [(pixels_in_bins[j][0], pixels_in_bins[j][1])
+                      for j in range(npix) if pixels_in_bins[j][2] == i])
+            net_counts = self.get_bin_vals(counts_img.data,
+                bkg_img_data, bkg_norm_factor, exp_img_data,
+                pixels_in_current_bin, only_counts=True, only_net_cts=True)
+            print('net_counts = ', net_counts)
+            if net_counts < min_counts:
+                if end_edge == edges[-1] and len(bins) != 0:
+                    bins[-1][2].extend(pixels_in_current_bin)
+                    updated_last_bin = (bins[-1][0], end_edge, bins[-1][2])
+                    list(bins)[-1] = updated_last_bin
+                elif end_edge == edges[-1] and len(bins) == 0:
+                    error_message = ErrorMessages('001')
+                    raise ValueError(error_message)
+                else:
+                    continue
+            else:
+                print(start_edge, end_edge, pixels_in_current_bin)
+                bins.append((start_edge, end_edge, pixels_in_current_bin))
+                start_edge = end_edge
+                pixels_in_current_bin = []
+        return bins
 
     def profile(self, counts_img, bkg_img, exp_img,
         min_counts=100, only_counts=False, islog=True):
@@ -144,10 +181,10 @@ class Region(object):
         net_cts = np.array([profile[i][7] for i in range(nbins)])
         err_net_cts = np.array([profile[i][8] for i in range(nbins)])
 
-        plt.scatter(r, net_cts, c="black", alpha=0.85, s=35, marker="s")
+        plt.scatter(r, net_cts, c="#1e8f1e", alpha=0.85, s=35, marker="s")
         plt.errorbar(r, net_cts, xerr=r_err, yerr=err_net_cts,
-                     linestyle="None", color="black")
-        plt.step(r, bkg, where="mid", linewidth=3)
+                     linestyle="None", color="#1e8f1e")
+        plt.step(r, bkg, where="mid", linewidth=2, color='#1f77b4')
 
         plt.rc('text', usetex=False)
         if xlabel is not None:
@@ -176,6 +213,6 @@ class Region(object):
                 raise Exception("No model is defined.")
             else:
                 evaluated_model = model.evaluate(r)
-                plt.plot(r, evaluated_model, color="r", linewidth=3, alpha=0.75)
+                plt.plot(r, evaluated_model, color="#ffa500", linewidth=2, alpha=0.75)
 
         plt.show()
