@@ -91,37 +91,34 @@ class Epanda(profile.Region):
         x_max_bound = floor(self.x0 + self.major_axis)
         y_min_bound = ceil(self.y0 - self.major_axis)
         y_max_bound = ceil(self.y0 + self.major_axis)
-        for i, (start_edge, end_edge) in enumerate(zip(edges[:-1], edges[1:])):
-            print(datetime.datetime.now().time())
-            for x in range(x_min_bound, x_max_bound+1):
-                for y in range(y_min_bound, y_max_bound+1):
-                    x_rel = x - self.x0
-                    y_rel = y - self.y0
-                    x_rot_back, y_rot_back = rotate_point(self.x0, self.y0,
-                                                          x_rel, y_rel,
-                                                          -self.rot_angle)
-                    minor_end_edge = end_edge / self.major_axis * \
-                                     self.minor_axis
-                    minor_start_edge = start_edge / self.major_axis * \
-                                       self.minor_axis
-                    outer_ellipse_eq = (x_rot_back - self.x0)**2 / \
-                                            end_edge**2 + \
-                                       (y_rot_back - self.y0)**2 / \
-                                            minor_end_edge**2
-                    inner_ellipse_eq = (x_rot_back - self.x0)**2 / \
-                                            start_edge**2 +\
-                                       (y_rot_back - self.y0)**2 / \
-                                            minor_start_edge**2
-                    if x_rot_back - self.x0 >= 0:
-                        r = np.sqrt((x_rot_back - self.x0)**2 + \
-                                    (y_rot_back - self.y0)**2)
-                        xy_angle = np.arcsin((y_rot_back - self.y0) / r)
-                        if xy_angle < 0:
-                            xy_angle = 2 * np.pi + xy_angle
-                    else:
-                        xy_angle = np.arctan((y_rot_back - self.y0) /
-                                             (x_rot_back - self.x0)) + np.pi
-                    if outer_ellipse_eq < 1 and inner_ellipse_eq >= 1:
-                        if self.start_angle <= xy_angle <= self.end_angle:
+
+        print(datetime.datetime.now().time())
+
+        for x in range(x_min_bound, x_max_bound+1):
+            for y in range(y_min_bound, y_max_bound+1):
+                x_rel = x - self.x0
+                y_rel = y - self.y0
+                x_rot_back, y_rot_back = rotate_point(self.x0, self.y0,
+                                                      x_rel, y_rel,
+                                                      -self.rot_angle)
+                outer_ellipse_eq = [(x_rot_back - self.x0)**2 / edges[i]**2 +
+                                    (y_rot_back - self.y0)**2 / edges[i]**2 *
+                                    self.major_axis**2 / self.minor_axis**2
+                                    for i in range(1,len(edges))]
+                if x_rot_back - self.x0 >= 0:
+                    r = np.sqrt((x_rot_back - self.x0)**2 + \
+                                (y_rot_back - self.y0)**2)
+                    xy_angle = np.arcsin((y_rot_back - self.y0) / r)
+                    if xy_angle < 0:
+                        xy_angle = 2 * np.pi + xy_angle
+                else:
+                    xy_angle = np.arctan((y_rot_back - self.y0) /
+                                         (x_rot_back - self.x0)) + np.pi
+                if self.start_angle <= xy_angle <= self.end_angle:
+                    for i, eq in enumerate(outer_ellipse_eq[1:]):
+                        if eq < 1:
                             pixels.append((y, x, i))
+                            break
+
+        print(datetime.datetime.now().time())
         return pixels
