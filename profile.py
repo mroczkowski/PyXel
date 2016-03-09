@@ -178,6 +178,7 @@ class Region(object):
         r_err = np.array([profile[i][1] for i in range(nbins)])
 
         bkg = np.array([profile[i][5] for i in range(nbins)])
+        bkg_err = np.array([profile[i][6] for i in range(nbins)])
         net_cts = np.array([profile[i][7] for i in range(nbins)])
         err_net_cts = np.array([profile[i][8] for i in range(nbins)])
 
@@ -185,6 +186,10 @@ class Region(object):
         plt.errorbar(r, net_cts, xerr=r_err, yerr=err_net_cts,
                      linestyle="None", color="#1e8f1e")
         plt.step(r, bkg, where="mid", linewidth=2, color='#1f77b4')
+        plt.step(r, bkg - bkg_err, where="mid", linewidth=1, color='#1f77b4',
+                                   linestyle='--', alpha=0.5)
+        plt.step(r, bkg + bkg_err, where="mid", linewidth=1, color='#1f77b4',
+                                   linestyle='--', alpha=0.5)
 
         plt.rc('text', usetex=False)
         if xlabel is not None:
