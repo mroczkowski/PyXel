@@ -86,8 +86,9 @@ def get_data_for_cash(profile, minrange, maxrange):
     r = np.array([profile[i][0] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
     w = np.array([profile[i][1] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
     raw_cts = np.array([profile[i][2] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
+    bkg = np.array([profile[i][5] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
     sb_to_counts_factor = np.array([profile[i][9] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
-    return nbins, r, w, raw_cts, sb_to_counts_factor
+    return nbins, r, w, raw_cts, bkg, sb_to_counts_factor
 
 def call_model(func_name):
     model = getattr(model_defs, func_name)

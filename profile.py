@@ -49,12 +49,12 @@ class Region(object):
         bkg_img_data, bkg_norm_factor, exp_img_data = \
             get_bkg_exp(bkg_img, exp_img)
         edges = self.make_edges(islog)
+        print('edges before merging =', edges)
         pixels_in_bins = self.distribute_pixels(edges)
         nbins = len(edges) - 1
         npix = len(pixels_in_bins)
         bins = []
         start_edge = edges[0]
-        end_edge = edges[1]
         pixels_in_current_bin = []
         for i in range(nbins):
             end_edge = edges[i+1]
@@ -69,7 +69,7 @@ class Region(object):
                 if end_edge == edges[-1] and len(bins) != 0:
                     bins[-1][2].extend(pixels_in_current_bin)
                     updated_last_bin = (bins[-1][0], end_edge, bins[-1][2])
-                    list(bins)[-1] = updated_last_bin
+                    bins[-1] = updated_last_bin
                 elif end_edge == edges[-1] and len(bins) == 0:
                     error_message = ErrorMessages('001')
                     raise ValueError(error_message)
@@ -217,7 +217,10 @@ class Region(object):
             if not model_name:
                 raise Exception("No model is defined.")
             else:
+                print(r)
                 evaluated_model = model.evaluate(r)
+                print(np.shape(evaluated_model), np.shape(r))
+                print(evaluated_model)
                 plt.plot(r, evaluated_model, color="#ffa500", linewidth=2, alpha=0.75)
 
         plt.show()

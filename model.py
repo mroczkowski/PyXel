@@ -3,8 +3,13 @@ import numpy as np
 import inspect
 import collections
 
-from fitting import chi, cash
-from aux import call_model
+from fitting import chi, cash, calc_cash, calc_mod_profile
+from aux import call_model, get_data_for_cash
+
+import emcee
+import corner
+import matplotlib.pyplot as pl
+from matplotlib.ticker import MaxNLocator
 
 class FitParameter:
     def __init__(self, model_parameter):
@@ -13,6 +18,9 @@ class FitParameter:
         self.frozen = False
         self.min = model_parameter.default_min
         self.max = model_parameter.default_max
+
+    def __repr__(self):
+        return 'value={}, frozen={}, min={}, max={}'.format(self.value, self.frozen, self.min, self.max)
 
 class Model(object):
     def __init__(self, params):
@@ -24,6 +32,8 @@ class Model(object):
 
     def evaluate(self, x):
         param_values = [param.value for param in self.params.values()]
+        print("param_values", param_values)
+        print("x = ", x)
         return self.evaluate_with_params(x, param_values)
 
     def set_parameter(self, name, value, frozen=False,
@@ -46,24 +56,6 @@ class Model(object):
                 else:
                     self.params[name].max = max_bound
 
-    def min_fitrange(self, x, y, yerr, min_range=None):
-        if min_range is not None and np.min(x) < min_range:
-            x_limited = x[x >= min_range]
-            y_limited = y[x >= min_range]
-            yerr_limited = yerr[x >= min_range]
-            return x_limited, y_limited, yerr_limited
-        else:
-            return x, y, yerr
-
-    def max_fitrange(self, x, y, yerr, max_range=None):
-        if max_range is not None and np.max(x) > max_range:
-            x_limited = x[x <= max_range]
-            y_limited = y[x <= max_range]
-            yerr_limited = yerr[x <= max_range]
-            return x_limited, y_limited, yerr_limited
-        else:
-            return x, y, yerr
-
     def set_lower_bound(self, name, min_bound):
         if name in self.params.keys():
             self.params[name].min = min_bound
@@ -71,7 +63,6 @@ class Model(object):
     def set_upper_bound(self, name, max_bound):
         if name in self.params.keys():
             self.params[name].max = max_bound
-
 
     class NamedParameters:
         def __init__(self, param_names, param_values):
@@ -101,13 +92,67 @@ class Model(object):
 #                  str('%.3e' % self.params[name].max).rjust(12))
         print()
 
+    def lnprior(self, params):
+        prior = 0
+        for param_value, param in zip(params, self.params.values()):
+            if param.min is not None:
+                if param_value < param.min:
+                    prior = -np.inf
+                    break
+            if param.max is not None:
+                if param_value > param.max:
+                    prior = -np.inf
+                    break
+        return prior
+
+    def lnprob(self, params, r, w, raw_cts, bkg, sb_to_counts_factor):
+        lnp = self.lnprior(params)
+        if not np.isfinite(lnp):
+            return -np.inf
+        mod_profile = calc_mod_profile(self, params, r, w, bkg, sb_to_counts_factor)
+        lnc = calc_cash(raw_cts, mod_profile)
+        return lnp - lnc
+
     def fit(self, profile, statistics='cash', method='L-BFGS-B',
             min_range=-np.inf, max_range=np.inf):
         if statistics == 'chi':
             return chi(profile, self, method=method,
                        min_range=min_range, max_range=max_range)
         elif statistics == 'cash':
-            return cash(profile, self, method=method,
-                        min_range=min_range, max_range=max_range)
+            _, r, w, raw_cts, bkg, sb_to_counts_factor = get_data_for_cash(profile,
+                                                                           min_range,
+                                                                           max_range)
+            result = cash(profile, self, method=method,
+                          min_range=min_range, max_range=max_range)
+
+            """ndim, nwalkers = len(self.params), 100
+            pos = [result["x"] + 1e-4 * np.random.randn(ndim) * result["x"]
+                   for i in range(nwalkers)]
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, self.lnprob,
+                            args=(r, w, raw_cts, bkg, sb_to_counts_factor))
+            sampler.run_mcmc(pos, 500)
+            pl.clf()
+            fig, axes = pl.subplots(ndim, 1, sharex=True, figsize=(8, 9))
+            for i, param in enumerate(self.params):
+                axes[i].plot(sampler.chain[:, :, i].T, color="k", alpha=0.4)
+                axes[i].yaxis.set_major_locator(MaxNLocator(5))
+                axes[i].axhline(result["x"][i], color="#888888", lw=2)
+                axes[i].set_ylabel(param)
+            pl.show()
+            samples = sampler.chain[:, 100:, :].reshape((-1, ndim))
+            fig = corner.corner(samples, labels=list(self.params.keys()))
+            fig.savefig("triangle.png")
+            val_with_errs = [(v[1], v[2]-v[1], v[1]-v[0])
+                             for v in zip(*np.percentile(samples, [5, 50, 95],
+                                                axis=0))]
+            print(val_with_errs)
+            print('optimize: params={}, nll={}'.format(result['x'], result['fun']))
+            for walker in range(nwalkers):
+                params = [sampler.chain[walker, -1, 0], sampler.chain[walker, -1, 1],
+                          sampler.chain[walker, -1, 2], sampler.chain[walker, -1, 3]]
+                mod_profile = calc_mod_profile(self, params, r, w, bkg, sb_to_counts_factor)
+                nll = calc_cash(raw_cts, mod_profile)
+                print('walker {}: params={}, nll={}'.format(walker, params, nll))"""
+            return result
         else:
             raise Exception('Statistics {} does not exist'.format(statistics))

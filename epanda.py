@@ -108,7 +108,10 @@ class Epanda(profile.Region):
                 if x_rot_back - self.x0 >= 0:
                     r = np.sqrt((x_rot_back - self.x0)**2 + \
                                 (y_rot_back - self.y0)**2)
-                    xy_angle = np.arcsin((y_rot_back - self.y0) / r)
+                    if r < 1e-10:
+                        xy_angle = self.start_angle
+                    else:
+                        xy_angle = np.arcsin((y_rot_back - self.y0) / r)
                     if xy_angle < 0:
                         xy_angle = 2 * np.pi + xy_angle
                 else:

@@ -17,7 +17,12 @@ pyfits.writeto('test.fits', src_img.data, clobber=True)
 p = region.sb_profile(src_img, bkg_img, exp_img, min_counts=50)
 
 mod = Beta()
+mod.set_parameter('beta', 0.6)
+mod.set_parameter('rc', 0.9)
+mod.set_parameter('s0', 3.7e-4, max_bound = 1e-2)
+mod.set_parameter('const', 3e-8)
 print(mod.fit(p, statistics='cash'))
+print(mod.params)
 region.plot_profile(p, xlog=True, ylog=True, \
     model_name="beta", model=mod, \
     xlabel=r"Distance (arcmin)", \

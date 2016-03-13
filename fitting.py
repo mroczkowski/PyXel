@@ -33,8 +33,8 @@ def chi(obs_profile, model, method='L-BFGS-B',
         #mod_profile = np.array([model.evaluate_with_params(x, params)
         #                        for x in r])
 
-        print(net)
-        print(mod_profile)
+        #print(net)
+        #print(mod_profile)
         chi2 = np.sum((net - mod_profile) ** 2 / net_err ** 2)
         jac = np.zeros(len(params))
         for i in range(len(params)):
@@ -48,6 +48,19 @@ def chi(obs_profile, model, method='L-BFGS-B',
 
     return do_fit(calc_chi2, model, method=method)
 
+def calc_cash(raw_cts, mod_profile):
+    cash = 2. * np.sum(mod_profile - raw_cts + raw_cts *
+                       np.log(raw_cts/mod_profile))
+    return cash
+
+def calc_mod_profile(model, params, r, w, bkg, sb_to_counts_factor):
+    mod_profile  = np.array(
+        [scipy.integrate.quad(model.evaluate_with_params,
+                              x - width, x + width, params)[0] / 2 / width
+         for x, width in zip(r, w)])
+    mod_profile = (mod_profile + bkg) * sb_to_counts_factor
+    return mod_profile
+
 def cash(obs_profile, model, method='L-BFGS-B',
          min_range=-np.inf, max_range=+np.inf):
     """Fit a profile using Cash statistics.
@@ -56,22 +69,14 @@ def cash(obs_profile, model, method='L-BFGS-B',
     from the data. If (part of) the background is subtracted, use cstat
     statistics instead.
     """
-    nbins, r, w, raw_cts, sb_to_counts_factor = get_data_for_cash(obs_profile,
-                                                 min_range, max_range)
-    def calc_cash(params):
+    nbins, r, w, raw_cts, bkg, sb_to_counts_factor = get_data_for_cash(obs_profile,
+                                                                       min_range, max_range)
+    def get_cash_jac(params):
         print('Iterating... ', params)
-        mod_profile = np.array(
-            [scipy.integrate.quad(model.evaluate_with_params,
-                                  x - width, x + width, params)[0] / 2 / width
-             for x, width in zip(r, w)])
-        mod_profile = mod_profile * sb_to_counts_factor
-        #mod_profile = np.array([model.evaluate_with_params(x, params)
-        #                        for x in r])
-
+        mod_profile = calc_mod_profile(model, params, r, w, bkg, sb_to_counts_factor)
         # TODO: CHECK CASE FOR RAW_CTS == 0 (RAW_CTS IS ARRAY)
-        cash = 2. * np.sum(mod_profile - raw_cts + raw_cts * np.log(raw_cts/mod_profile))
-        print(raw_cts)
-        print(mod_profile)
+        cash = calc_cash(raw_cts, mod_profile)
+
         print('==> ', cash)
         jac = np.zeros(len(params))
         for i in range(len(params)):
@@ -83,7 +88,7 @@ def cash(obs_profile, model, method='L-BFGS-B',
         print('analytical jacobian: ', jac)
         return cash, jac
 
-    return do_fit(calc_cash, model, method=method)
+    return do_fit(get_cash_jac, model, method=method)
 
 #def cash(obs_profile, mod_profile):
 #    nbins, r, src, npix, exp = get_data_for_cash(obs_profile)
