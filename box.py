@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from SurfMessages import ErrorMessages, InfoMessages
 from aux import rotate_point, get_edges
-import profile
+import prof
 
-class Box(profile.Region):
+class Box(prof.Region):
     """Generate box object."""
     def __init__(self, x0, y0, width, height, angle):
        self.x0 = x0
@@ -35,7 +35,6 @@ class Box(profile.Region):
                    (self.width/2, -self.height/2)]
         rotated_corners = [rotate_point(self.x0, self.y0, x, y, self.angle)
             for x, y in corners]
-#        print(rotated_corners)
         return rotated_corners
 
     def make_edges(self, islog):

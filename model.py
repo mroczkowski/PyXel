@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import inspect
 import collections
+from tabulate import tabulate
 
 from fitting import chi, cash, calc_cash, calc_mod_profile
 from aux import call_model, get_data_for_cash
@@ -32,8 +33,8 @@ class Model(object):
 
     def evaluate(self, x):
         param_values = [param.value for param in self.params.values()]
-        print("param_values", param_values)
-        print("x = ", x)
+#        print("param_values", param_values)
+#        print("x = ", x)
         return self.evaluate_with_params(x, param_values)
 
     def set_parameter(self, name, value, frozen=False,
@@ -125,34 +126,39 @@ class Model(object):
             result = cash(profile, self, method=method,
                           min_range=min_range, max_range=max_range)
 
-            """ndim, nwalkers = len(self.params), 100
+            ndim, nwalkers = len(self.params), 100
             pos = [result["x"] + 1e-4 * np.random.randn(ndim) * result["x"]
                    for i in range(nwalkers)]
             sampler = emcee.EnsembleSampler(nwalkers, ndim, self.lnprob,
                             args=(r, w, raw_cts, bkg, sb_to_counts_factor))
             sampler.run_mcmc(pos, 500)
-            pl.clf()
-            fig, axes = pl.subplots(ndim, 1, sharex=True, figsize=(8, 9))
-            for i, param in enumerate(self.params):
-                axes[i].plot(sampler.chain[:, :, i].T, color="k", alpha=0.4)
-                axes[i].yaxis.set_major_locator(MaxNLocator(5))
-                axes[i].axhline(result["x"][i], color="#888888", lw=2)
-                axes[i].set_ylabel(param)
-            pl.show()
+            # fig, axes = pl.subplots(ndim, 1, sharex=True, figsize=(8, 9))
+            # for i, param in enumerate(self.params):
+            #     axes[i].plot(sampler.chain[:, :, i].T, color="k", alpha=0.4)
+            #     axes[i].yaxis.set_major_locator(MaxNLocator(5))
+            #     axes[i].axhline(result["x"][i], color="#888888", lw=2)
+            #     axes[i].set_ylabel(param)
             samples = sampler.chain[:, 100:, :].reshape((-1, ndim))
             fig = corner.corner(samples, labels=list(self.params.keys()))
             fig.savefig("triangle.png")
+            pl.clf()
             val_with_errs = [(v[1], v[2]-v[1], v[1]-v[0])
                              for v in zip(*np.percentile(samples, [5, 50, 95],
                                                 axis=0))]
-            print(val_with_errs)
-            print('optimize: params={}, nll={}'.format(result['x'], result['fun']))
-            for walker in range(nwalkers):
-                params = [sampler.chain[walker, -1, 0], sampler.chain[walker, -1, 1],
-                          sampler.chain[walker, -1, 2], sampler.chain[walker, -1, 3]]
-                mod_profile = calc_mod_profile(self, params, r, w, bkg, sb_to_counts_factor)
-                nll = calc_cash(raw_cts, mod_profile)
-                print('walker {}: params={}, nll={}'.format(walker, params, nll))"""
+            pnames = list(self.params.keys())
+            tab_data = [[pnames[i], val_with_errs[i][0], -val_with_errs[i][1],
+                        val_with_errs[i][2]] for i in range(len(val_with_errs))]
+            print('FIT SUMMARY:')
+            print('')
+            print(tabulate(tab_data, headers=['Parameter', 'Value', 'Lower Uncertainty', 'Upper Uncertainty'], tablefmt='orgtbl', floatfmt=".3e"))
+            print('')
+            print('')
+#            for walker in range(nwalkers):
+#                params = [sampler.chain[walker, -1, 0], sampler.chain[walker, -1, 1],
+#                          sampler.chain[walker, -1, 2], sampler.chain[walker, -1, 3]]
+#                mod_profile = calc_mod_profile(self, params, r, w, bkg, sb_to_counts_factor)
+#                nll = calc_cash(raw_cts, mod_profile)
+                #print('walker {}: params={}, nll={}'.format(walker, params, nll))
             return result
         else:
             raise Exception('Statistics {} does not exist'.format(statistics))

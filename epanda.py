@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from SurfMessages import ErrorMessages, InfoMessages
 from aux import rotate_point, get_edges
-import profile
+import prof
 import datetime
 
-class Epanda(profile.Region):
+class Epanda(prof.Region):
     """Generate elliptical sector."""
     def __init__(self, x0, y0, start_angle, end_angle,
                  major_axis, minor_axis, rot_angle):
@@ -19,8 +19,6 @@ class Epanda(profile.Region):
        self.major_axis = major_axis
        self.minor_axis = minor_axis
        self.rot_angle = rot_angle
-       print(self.x0, self.y0, self.start_angle, self.end_angle,
-             self.major_axis, self.minor_axis, self.rot_angle)
 
     @classmethod
     def from_epanda_params(cls, params):
@@ -92,8 +90,6 @@ class Epanda(profile.Region):
         y_min_bound = ceil(self.y0 - self.major_axis)
         y_max_bound = ceil(self.y0 + self.major_axis)
 
-        print(datetime.datetime.now().time())
-
         for x in range(x_min_bound, x_max_bound+1):
             for y in range(y_min_bound, y_max_bound+1):
                 x_rel = x - self.x0
@@ -123,5 +119,4 @@ class Epanda(profile.Region):
                             pixels.append((y, x, i))
                             break
 
-        print(datetime.datetime.now().time())
         return pixels
