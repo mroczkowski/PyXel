@@ -82,7 +82,30 @@ class BrokenPow(Fittable1DModel):
                                 1e-4, 1e4)[0]
 
     @staticmethod
-    def fit_deriv(xval, ind1, ind2, norm, rbreak, jump, const):
+    def fit_deriv(x, ind1, ind2, norm, rbreak, jump, const):
+        if not isinstance(x, (int, float)):
+            d_ind1 = np.zeros_like(x)
+            d_ind2 = np.zeros_like(x)
+            d_norm = np.zeros_like(x)
+            d_rbreak = np.zeros_like(x)
+            d_jump = np.zeros_like(x)
+            for i in range(len(x)):
+                d_ind1_tmp, d_ind2_tmp, d_norm_tmp, \
+                    d_rbreak_tmp, d_jump_tmp = BrokenPow.fit_deriv_one(
+                    x[i], ind1, ind2, norm, rbreak, jump)
+                d_ind1.append(d_ind1_tmp)
+                d_ind2.append(d_ind2_tmp)
+                d_norm.append(d_norm_tmp)
+                d_rbreak.append(d_rbreak_tmp)
+                d_jump.append(d_jump_tmp)
+        else:
+            d_ind1, d_ind2, d_norm, d_rbreak, d_jump = \
+                BrokenPow.fit_deriv_one(x, ind1, ind2, norm, rbreak, jump)
+        d_const = np.ones_like(x)
+        return [d_ind1, d_ind2, d_norm, d_rbreak, d_jump, d_const]
+
+    @staticmethod
+    def fit_deriv_one(xval, ind1, ind2, norm, rbreak, jump):
         fn1 = lambda z: ((xval**2 + z**2) / rbreak**2)**(-ind1)
         fn2 = lambda z: ((xval**2 + z**2) / rbreak**2)**(-ind2)
         norm_after_jump = norm / jump**2
@@ -133,5 +156,4 @@ class BrokenPow(Fittable1DModel):
                          ((xval**2 + z**2) / rbreak**2)**(-ind2),
                          1e-4, 1e4)[0]
 
-        d_const = np.ones_like(xval)
-        return [d_ind1, d_ind2, d_norm, d_rbreak, d_jump, d_const]
+        return [d_ind1, d_ind2, d_norm, d_rbreak, d_jump]
