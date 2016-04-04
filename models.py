@@ -3,31 +3,6 @@ import scipy.integrate
 from astropy.modeling import Fittable1DModel, Parameter
 from scipy import integrate
 
-# class IntModel(Fittable1DModel):
-#
-#     r = Parameter(default = 0., min = 0.)
-#     r_widths = Parameter(default = 0., min = 0.)
-#     model = Parameter() # ???
-#
-#     def __init__(self, radius=r.default, widths=r_widths.default, model=model.default):
-#         if all(r_width is None for r_width in np.array(widths)):
-#             widths = r * 0.
-#         super(IntModel, self).__init__(radius=radius, widths=widths, model=model)
-#
-#     @staticmethod
-#     def evaluate(x, *params):
-#         params = model.parameters
-#         result = np.array([int.quad(model.evaluate, d - dw, d + dw, params)[0]
-#                            / (2.*dw) for d, dw in zip(r, r_widths)])
-#         return result
-#
-#     @staticmethod
-#     def fit_deriv(r, r_widths, model):
-#         params = model.parameters
-#         result = np.array([int.quad(model.fit_deriv, d - dw, d + dw, params)[0]
-#                            / (2.*dw) for d, dw in zip(r, r_widths)])
-#         return result
-
 def IntModel(model_cls):
     class MyIntModel(model_cls):
         def __init__(self, widths, *args, **kwargs):
