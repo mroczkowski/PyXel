@@ -23,22 +23,22 @@ def bin_pix2arcmin(bin_values, pix2arcmin):
     return (bin_r, bin_width, raw_cts, src, err_src,
             bkg, err_bkg, net, err_net, sb_to_counts_factor)
 
-def get_bkg_exp(bkg_img, exp_img):
+def get_bkg_exp(counts_img, bkg_img, bkg_err_img, exp_img):
     if bkg_img is None:
         bkg_img_data = np.zeros(np.shape(counts_img.data))
-        bkg_norm_factor = 1
+        bkg_err_img_data = bkg_img_data
     else:
         bkg_img_data = bkg_img.data
-        if 'BKG_NORM' in bkg_img.hdr:
-            bkg_norm_factor = bkg_img.hdr['BKG_NORM']
+        if not bkg_err_img:
+            bkg_img_data[bkg_img_data < 0] = 0.
+            bkg_err_img_data = bkg_img_data
         else:
-            print(InfoMessages('003'))
-            bkg_norm_factor = 1
+            bkg_err_img_data = bkg_err_img.data
     if exp_img is None:
         exp_img_data = np.ones(np.shape(counts_img.data))
     else:
         exp_img_data = exp_img.data
-    return bkg_img_data, bkg_norm_factor, exp_img_data
+    return bkg_img_data, bkg_err_img_data, exp_img_data
 
 def merge_subpixel_bins(edges):
     new_edges = [edges[0]]
@@ -64,7 +64,7 @@ def get_edges(max_r, islog):
         # sub-pixel width, and then the merging will take care of them
         # later. The end result is a compromise between log-scaling and
         # getting one's time worth of bins.
-        nbins = 500.
+        nbins = 100.
         min_r = 1.   # to avoid log(0)
         # Below, nbins+1 is used because the code gets edges, not
         # bin centers. For nbins there will be nbins+1 edges.
@@ -86,8 +86,9 @@ def get_data_for_cash(profile, minrange, maxrange):
     r = np.array([profile[i][0] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
     w = np.array([profile[i][1] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
     raw_cts = np.array([profile[i][2] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
+    bkg = np.array([profile[i][5] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
     sb_to_counts_factor = np.array([profile[i][9] for i in range(nbins) if minrange <= profile[i][0] <= maxrange])
-    return nbins, r, w, raw_cts, sb_to_counts_factor
+    return nbins, r, w, raw_cts, bkg, sb_to_counts_factor
 
 def call_model(func_name):
     model = getattr(model_defs, func_name)

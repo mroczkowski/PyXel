@@ -67,4 +67,5 @@ def load_region(filename):
     else:
         shape, params = read_shape(data)
         region = regions[shape](params)
+        print(shape, params)
         return region
