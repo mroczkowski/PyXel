@@ -2,6 +2,7 @@ import pyfits
 import numpy as np
 from box import Box
 from epanda import Epanda
+import utils
 
 class Image():
     def __init__(self, filename, ext=0):
@@ -13,27 +14,19 @@ class Image():
         as well as keywords associated with a 3rd and 4th dimension (e.g. NAXIS3,
         NAXIS4).
         """
-        img_hdu = pyfits.open(filename)
-        self.data = img_hdu[ext].data
-        self.hdr = self.clean_header(img_hdu[ext].header)
-
-    def clean_header(self, hdr):
-        """Remove unwanted keywords from the image header.
-
-        Deletes from the image header unncessary keywords such as HISTORY and
-        COMMENT, as well as keywords associated with a 3rd and 4th dimension
-        (e.g. NAXIS3, NAXIS4). Some radio images are 4D, but the 3rd and 4th
-        dimensions are not necessary for plotting the brightness and may
-        occasionally cause problems with PyFITS routines.
-        """
-        forbidden_keywords = {'HISTORY', 'COMMENT', 'NAXIS3', 'NAXIS4',
-            'CTYPE3', 'CTYPE4', 'CRVAL3', 'CRVAL4', 'CDELT3', 'CDELT4',
-            'CRPIX3', 'CRPIX4', 'CUNIT3', 'CUNIT4'}
-        existing_keywords = [key for key in forbidden_keywords if key in hdr]
-        if any(existing_keywords):
-            for key in existing_keywords:
-                del hdr[key]
-        return hdr
+        if not isinstance(filename, list):
+            img_hdu = pyfits.open(filename)
+            self.data = img_hdu[ext].data
+            self.hdr = utils.clean_header(img_hdu[ext].header)
+        else:
+            img_hdr = []
+            img_data = []
+            for i in range(len(filaname)):
+                img_hdu = pyfits.open(filename[i])
+                img_data.append(img_hdu[ext[i]].data)
+                img_hdr.append(utils.clean_header(img_hdu[ext[i]].header))
+            self.data = img_data
+            self.hdr = img_hdr
 
 def read_shape(data):
     """Get region shape and parameters.
