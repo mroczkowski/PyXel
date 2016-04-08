@@ -1,4 +1,4 @@
-import pyfits
+from astropy.io import fits
 import numpy as np
 from box import Box
 from epanda import Epanda
@@ -15,7 +15,7 @@ class Image():
         NAXIS4).
         """
         if not isinstance(filename, list):
-            img_hdu = pyfits.open(filename)
+            img_hdu = fits.open(filename)
             self.data = img_hdu[ext].data
             self.hdr = utils.clean_header(img_hdu[ext].header)
         else:
@@ -27,7 +27,7 @@ class Image():
                 raise IndexError('Length of the extension array must match \
                     number of images.')
             for i in range(len(filename)):
-                img_hdu = pyfits.open(filename[i])
+                img_hdu = fits.open(filename[i])
                 img_data.append(img_hdu[ext[i]].data)
                 img_hdr.append(utils.clean_header(img_hdu[ext[i]].header))
             self.data = img_data
