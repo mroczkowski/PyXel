@@ -1,4 +1,10 @@
 import numpy as np
+import warnings
+
+from astropy.modeling.optimizers import Optimization
+from astropy.utils.exceptions import AstropyUserWarning
+
+DEFAULT_BOUNDS = (-1e12, 1e12)
 
 class Minimize(Optimization):
     """General optimization algorithm based on `scipy.optimize.minimize`.
@@ -6,9 +12,11 @@ class Minimize(Optimization):
     The `Minimize` optimizer allows the use of `scipy.optimize.minimize` and
     the associated optimizer methods with `astropy.modeling`.
     """
+    supported_constraints = ['bounds', 'eqcons', 'ineqcons', 'fixed', 'tied']
+
     def __init__(self, method='SLSQP'):
-        import scipy.optimize.minimize
-        super(Minimize, self).__init__(scipy.optimize.minimize)
+        from scipy.optimize import minimize
+        super(Minimize, self).__init__(minimize)
         method = method.lower()
         self.supported_constraints = ['fixed', 'tied']
         if method in ['l-bfgs-b', 'tnc']:

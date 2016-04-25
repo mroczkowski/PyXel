@@ -128,7 +128,7 @@ class BrokenPow(Fittable1DModel):
             # This is only kind of correct. The derivative of the function
             # with respect to rbreak is not continuous, so the Leibniz rule
             # doesn't apply. But in principle this is should work okay as long
-            # as xval != rbreak (which is very unlikely in general). 
+            # as xval != rbreak (which is very unlikely in general).
             d_rbreak = norm * (2. * ind1 * scipy.integrate.quad(lambda z:
                                     fn1(z) / rbreak,
                                     1e-4, np.sqrt(rbreak**2 - xval**2))[0] +

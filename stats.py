@@ -1,11 +1,10 @@
 import numpy as np
 
-def cstat(measured_src_cts, measured_bkg_cts, t_src, t_bkg,
-          updated_model, radius):
+def cstat(measured_raw_cts, updated_model, measured_bkg_cts, t_raw, t_bkg, x):
     """
     C-statistic implementation. [1][2]
 
-    This algorithm requires source and background counts, as well as the
+    This algorithm requires total and background counts, as well as the
     factors that transform counts to rates.
 
     .. [1] Cash, W. (1979), "Parameter estimation in astronomy through
@@ -13,45 +12,34 @@ def cstat(measured_src_cts, measured_bkg_cts, t_src, t_bkg,
     .. [2] Wachter, K., Leach, R., Kellogg, E. (1979), "Parameter estimation
            in X-ray astronomy using maximum likelihood", ApJ, 230, p. 274-287
     """
-    
+    model_vals = updated_model(x)
+    d = np.sqrt(((t_raw + t_bkg) * model_vals - measured_raw_cts -
+                measured_bkg_cts)**2 + 4. * (t_raw + t_bkg) *
+                measured_bkg_cts * model_vals)
+    f = (measured_raw_cts + measured_bkg_cts - (t_raw + t_bkg) * model_vals
+         + d) / (2. * (t_raw + t_bkg))
 
-
-
-
-
-
-
-
-
-
-def cash(obs_profile, model, method='L-BFGS-B',
-         min_range=-np.inf, max_range=+np.inf):
-    """Fit a profile using Cash statistics (Cash 1979).
-
-    This statistic is only valid if no background components are subtracted
-    from the data. If (part of) the background is subtracted, use `cstat'
-    statistics instead.
-    """
-    nbins, r, w, raw_cts, bkg, sb_to_counts_factor = get_data_for_cash(obs_profile,
-                                                                       min_range, max_range)
-    def get_cash_jac(params):
-#        print('Iterating... ', params)
-        mod_profile = calc_mod_profile(model, params, r, w, bkg, sb_to_counts_factor)
-        # TODO: CHECK CASE FOR RAW_CTS == 0 (RAW_CTS IS ARRAY)
-        cash = calc_cash(raw_cts, mod_profile)
-
-#        print('==> ', cash)
-        jac = np.zeros(len(params))
-        for i in range(len(params)):
-            der = np.array(
-                [scipy.integrate.quad(model.jacobian,
-                            x - width, x + width, (params, i))[0] / 2 / width
-                 for x, width in zip(r, w)]) * sb_to_counts_factor
-            jac[i] = 2. * np.sum((1. - raw_cts/mod_profile) * der)
-#        print('analytical jacobian: ', jac)
-        return cash, jac
-
-    return do_fit(get_cash_jac, model, method=method)
-
-### Implement W-stat separately, because it's messier. Needs bkg counts and
-### some correction for the exposure time.
+    nbins = len(model_vals)
+    cash = 0.
+    for i in range(nbins):
+        if measured_raw_cts[i] == 0 and measured_bkg_cts[i] > 0:
+            cash += t_raw[i] * model_vals[i] - measured_bkg_cts[i] * \
+                    np.log(t_bkg[i] / (t_raw[i] + t_bkg[i]))
+        elif measured_bkg_cts[i] == 0 and measured_raw_cts[i] > 0:
+            if model_vals[i] < measured_raw_cts[i] / (t_raw[i] + t_bkg[i]):
+                cash += -t_bkg[i] * model_vals[i] - measured_raw_cts[i] * \
+                        np.log(t_raw[i] / (t_raw[i] + t_bkg[i]))
+            else:
+                cash += t_raw[i] * model_vals[i] + measured_raw_cts[i] * \
+                        (np.log(measured_raw_cts[i]) - np.log(t_raw[i] *
+                        model_vals[i]) - 1)
+        else:
+            cash += np.sum(t_raw[i] * model_vals[i] + (t_raw[i] + t_bkg[i]) * f[i] -
+                           measured_raw_cts[i] * np.log(t_raw[i] * (model_vals[i] + f[i]))
+                           - measured_bkg_cts[i] * np.log(t_bkg[i] * f[i]) -
+                           measured_raw_cts[i] * (1 - np.log(measured_raw_cts[i])) -
+                           measured_bkg_cts[i] * (1 - np.log(measured_bkg_cts[i])))
+    print("raw cts ==> ", measured_raw_cts)
+    print("model cts ==> ", model_vals * (t_raw + t_bkg))
+    print("2*cash ==> ", 2.*cash)
+    return 2. * cash

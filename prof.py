@@ -119,7 +119,6 @@ class Region(object):
         err_raw_rate = np.sqrt(err_raw_rate_sq) / npix
         err_net_rate = np.sqrt(err_net_rate_sq) / npix
         err_bkg_rate = np.sqrt(err_bkg_rate_sq) / npix
-        print(raw_cts, net_cts, bkg_cts, raw_rate, net_rate, bkg_rate)
         return raw_cts, net_cts, bkg_cts, raw_rate, err_raw_rate, \
             net_rate, err_net_rate, bkg_rate, err_bkg_rate
 
