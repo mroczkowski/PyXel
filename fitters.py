@@ -99,7 +99,6 @@ class CstatFitter(Fitter):
             if os.path.isfile(corner_filename) and not clobber_corner:
                 raise Exception("Corner plot already exists and clobber_corner=False.")
             else:
-                print(par_names)
                 fig = corner.corner(samples, labels=par_names)
                 fig.savefig(corner_filename, dpi=corner_dpi)
         lim_lower = 50. - cl / 2.

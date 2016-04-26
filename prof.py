@@ -10,8 +10,6 @@ class Region(object):
         exp_img, pixels_in_bin, only_net_cts=False):
         """Calculate the number of counts in a bin."""
 
-        if not only_net_cts:
-            print('pixels in bin = ', len(pixels_in_bin))
         if not isinstance(counts_img.data, list):
             bkg_corr = [None]
             counts_img_data, counts_img_hdr = [], []
@@ -109,8 +107,6 @@ class Region(object):
                     bkg_img_data[i][j, k] * bkg_corr_i**2) / exp_val**2
                 err_bkg_rate_sq += bkg_img_data[i][j, k] * \
                     bkg_corr_i**2 / exp_val**2
-            if not only_net_cts:
-                print('current_npix =', npix )
         if only_net_cts:
             return net_cts
         raw_rate /= npix
