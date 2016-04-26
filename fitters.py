@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 
 from astropy.modeling.fitting import Fitter
 
@@ -81,18 +82,17 @@ class CstatFitter(Fitter):
             lnc = cstat(measured_raw_cts, model_copy, measured_bkg_cts, t_raw, t_bkg, x)
             return lnp - lnc
 
-        if save_chain:
-            if not os.path.isfile(chain_filename) or clobber_chain:
-                sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
-                                                args=(measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
-                sampler.run_mcmc(pos, nruns)
-                samples = sampler.chain[:, nburn:, :].reshape((-1, ndim))
-                outfile = TemporaryFile()
-                np.save(outfile, samples)
-            elif os.path.isfile(chain_filename) and not clobber_chain:
-                raise Exception("Chain file aleady exists and clobber_chain=False")
-            else:
-                samples = load(chain_filename)
+        if not os.path.isfile(chain_filename) or clobber_chain:
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
+                                            args=(measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
+            sampler.run_mcmc(pos, nruns)
+            samples = sampler.chain[:, nburn:, :].reshape((-1, ndim))
+            if save_chain:
+                with open(chain_filename, 'wb') as f:
+                    pickle.dump(samples, f)
+        elif os.path.isfile(chain_filename) and not clobber_chain:
+            with open(chain_filename, 'rb') as f:
+                samples = pickle.load(f)
 
         par_names = model_copy.param_names
         if with_corner:
@@ -120,4 +120,4 @@ class CstatFitter(Fitter):
                        floatfmt=floatfmt))
         print('\n'*2)
 
-        return sampler.chain
+        return fit_data
