@@ -6,11 +6,15 @@ from optimizers import Minimize
 from stats import cstat
 import corner
 import emcee
+import os.path
+from tabulate import tabulate
+from tempfile import TemporaryFile
 
 from astropy.modeling.fitting import (_validate_model,
                                       _fitter_to_model_params,
                                       _model_to_fit_params, Fitter,
                                       _convert_input)
+from astropy.modeling.utils import get_inputs_and_params
 
 class CstatFitter(Fitter):
     """
@@ -52,8 +56,12 @@ class CstatFitter(Fitter):
 
         return model_copy
 
-    def run_mcmc(self, model, x, measured_raw_cts, measured_bkg_cts,
-                 t_raw, t_bkg, nburn=100, **kwargs):
+    def mcmc_err(self, model, x, measured_raw_cts, measured_bkg_cts,
+                 t_raw, t_bkg, cl=68.27, nruns=500, nwalkers=100, nburn=100,
+                 with_corner=True, corner_filename='triangle.pdf',
+                 corner_dpi=144, clobber_corner=True, save_chain=False,
+                 chain_filename='chain.dat', clobber_chain=False,
+                 floatfmt=".3e", tablefmt='orgtbl', **kwargs):
         """Run Markov Chain Monte Carlo for parameter error estimation.
 
         `model` should be a fitted model as returned by `__call__`.
@@ -63,7 +71,7 @@ class CstatFitter(Fitter):
         model_copy = _validate_model(model,
                                      self.supported_constraints)
         params, _ = _model_to_fit_params(model_copy)
-        ndim, nwalkers = len(params), 100
+        ndim = len(params)
         pos = [params + 1e-4 * np.random.randn(ndim) * params
                for i in range(nwalkers)]
 
@@ -73,16 +81,43 @@ class CstatFitter(Fitter):
             lnc = cstat(measured_raw_cts, model_copy, measured_bkg_cts, t_raw, t_bkg, x)
             return lnp - lnc
 
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
-                                        args=(measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
-        sampler.run_mcmc(pos, 500)
-        samples = sampler.chain[:, nburn:, :].reshape((-1, ndim))
-        fig = corner.corner(samples)
-        fig.savefig("triangle.png")
+        if save_chain:
+            if not os.path.isfile(chain_filename) or clobber_chain:
+                sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
+                                                args=(measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
+                sampler.run_mcmc(pos, nruns)
+                samples = sampler.chain[:, nburn:, :].reshape((-1, ndim))
+                outfile = TemporaryFile()
+                np.save(outfile, samples)
+            elif os.path.isfile(chain_filename) and not clobber_chain:
+                raise Exception("Chain file aleady exists and clobber_chain=False")
+            else:
+                samples = load(chain_filename)
+
+        par_names = model_copy.param_names
+        if with_corner:
+            if os.path.isfile(corner_filename) and not clobber_corner:
+                raise Exception("Corner plot already exists and clobber_corner=False.")
+            else:
+                print(par_names)
+                fig = corner.corner(samples, labels=par_names)
+                fig.savefig(corner_filename, dpi=corner_dpi)
+        lim_lower = 50. - cl / 2.
+        lim_upper = 50. + cl / 2.
+
+        val_with_errs = [(v[1], v[2]-v[1], v[1]-v[0])
+                         for v in zip(*np.percentile(samples,
+                                      [lim_lower, 50., lim_upper], axis=0))]
+        fit_data = [[par_names[i], val_with_errs[i][0], -val_with_errs[i][1],
+                     val_with_errs[i][2]] for i in range(len(val_with_errs))]
+
+        print('\n'*2)
+        print('FIT SUMMARY:')
+        print('')
+        tab_headers = ['Parameter', 'Value',
+                       'Lower Uncertainty', 'Upper Uncertainty']
+        print(tabulate(fit_data, headers=tab_headers, tablefmt=tablefmt,
+                       floatfmt=floatfmt))
+        print('\n'*2)
+
         return sampler.chain
-#        ndim, nwalkers = len(self.params), 100
-#        pos = [result["x"] + 1e-4 * np.random.randn(ndim) * result["x"]
-#               for i in range(nwalkers)]
-#        sampler = emcee.EnsembleSampler(nwalkers, ndim, self.lnprob,
-#                        args=(r, w, raw_cts, bkg, sb_to_counts_factor))
-#        sampler.run_mcmc(pos, 500)

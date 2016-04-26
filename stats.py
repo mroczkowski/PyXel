@@ -39,7 +39,4 @@ def cstat(measured_raw_cts, updated_model, measured_bkg_cts, t_raw, t_bkg, x):
                            - measured_bkg_cts[i] * np.log(t_bkg[i] * f[i]) -
                            measured_raw_cts[i] * (1 - np.log(measured_raw_cts[i])) -
                            measured_bkg_cts[i] * (1 - np.log(measured_bkg_cts[i])))
-    print("raw cts ==> ", measured_raw_cts)
-    print("model cts ==> ", model_vals * (t_raw + t_bkg))
-    print("2*cash ==> ", 2.*cash)
     return 2. * cash
