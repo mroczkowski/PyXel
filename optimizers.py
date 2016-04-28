@@ -14,7 +14,7 @@ class Minimize(Optimization):
     """
     supported_constraints = ['bounds', 'eqcons', 'ineqcons', 'fixed', 'tied']
 
-    def __init__(self, method='SLSQP'):
+    def __init__(self, method='Nelder-Mead'):
         from scipy.optimize import minimize
         super(Minimize, self).__init__(minimize)
         method = method.lower()
@@ -50,7 +50,10 @@ class Minimize(Optimization):
 
         """
         kwargs['options'] = {'maxiter': kwargs.pop('maxiter', self._maxiter),
-                             'eps': kwargs.pop('eps', self._eps)}
+                             'eps': kwargs.pop('eps', self._eps),
+                             'ftol': 1e-8,
+                             'factr': 1e4,
+                             'eps': 1e-8}
 
         acc = self._acc
         try:

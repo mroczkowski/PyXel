@@ -1,4 +1,12 @@
 import numpy as np
+from datetime import datetime
+
+def cstat_derivatives(measured_raw_cts, updated_model, measured_bkg_cts,
+                      t_raw, t_bkg, x):
+    """
+    Calculates the derivatives of the C-statistic.
+    """
+    model_derivs = updated_model.fit_deriv(x, *updated_model.parameters)
 
 def cstat(measured_raw_cts, updated_model, measured_bkg_cts, t_raw, t_bkg, x):
     """
@@ -12,7 +20,9 @@ def cstat(measured_raw_cts, updated_model, measured_bkg_cts, t_raw, t_bkg, x):
     .. [2] Wachter, K., Leach, R., Kellogg, E. (1979), "Parameter estimation
            in X-ray astronomy using maximum likelihood", ApJ, 230, p. 274-287
     """
+    print("cstat eval - start time: ", str(datetime.now()))
     model_vals = updated_model(x)
+    print(updated_model.parameters)
     d = np.sqrt(((t_raw + t_bkg) * model_vals - measured_raw_cts -
                 measured_bkg_cts)**2 + 4. * (t_raw + t_bkg) *
                 measured_bkg_cts * model_vals)
@@ -39,4 +49,6 @@ def cstat(measured_raw_cts, updated_model, measured_bkg_cts, t_raw, t_bkg, x):
                            - measured_bkg_cts[i] * np.log(t_bkg[i] * f[i]) -
                            measured_raw_cts[i] * (1 - np.log(measured_raw_cts[i])) -
                            measured_bkg_cts[i] * (1 - np.log(measured_bkg_cts[i])))
+    print('cash ==>', 2.*cash)
+    print("cstat eval - end time: ", str(datetime.now()))
     return 2. * cash

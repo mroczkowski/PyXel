@@ -61,7 +61,7 @@ class CstatFitter(Fitter):
                  t_raw, t_bkg, cl=68.27, nruns=500, nwalkers=100, nburn=100,
                  with_corner=True, corner_filename='triangle.pdf',
                  corner_dpi=144, clobber_corner=True, save_chain=False,
-                 chain_filename='chain.dat', clobber_chain=False,
+                 chain_filename='chain.dat', clobber_chain=True,
                  floatfmt=".3e", tablefmt='orgtbl', **kwargs):
         """Run Markov Chain Monte Carlo for parameter error estimation.
 
@@ -99,7 +99,7 @@ class CstatFitter(Fitter):
             if os.path.isfile(corner_filename) and not clobber_corner:
                 raise Exception("Corner plot already exists and clobber_corner=False.")
             else:
-                fig = corner.corner(samples, labels=par_names)
+                fig = corner.corner(samples, labels=par_names, bins=[20]*ndim)
                 fig.savefig(corner_filename, dpi=corner_dpi)
         lim_lower = 50. - cl / 2.
         lim_upper = 50. + cl / 2.
