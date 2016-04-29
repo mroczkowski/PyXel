@@ -51,11 +51,20 @@ class CstatFitter(Fitter):
         farg = (model_copy, measured_bkg_cts, t_raw, t_bkg) + farg
         p0, _ = _model_to_fit_params(model_copy)
 
+        # TODO: Honor estimate_jacobian in kwargs, and/or determine if
+        # model supports jacobian, and/or if fitter supports the jac argument.
+
         fitparams, self.fit_info = self._opt_method(
-            self.objective_function, p0, farg, **kwargs)
+            self.objective_function, p0, farg, jac=self.objective_derivative,
+            **kwargs)
         _fitter_to_model_params(model_copy, fitparams)
 
         return model_copy
+
+    def objective_derivative(self, params, model, measured_bkg_cts, t_raw, t_bkg, x, measured_raw_cts):
+        _fitter_to_model_params(model, params)
+        return cstat_deriv(measured_raw_cts, model, measured_bkg_cts,
+                           t_raw, t_bkg, x)
 
     def mcmc_err(self, model, x, measured_raw_cts, measured_bkg_cts,
                  t_raw, t_bkg, cl=68.27, nruns=500, nwalkers=100, nburn=100,

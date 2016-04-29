@@ -62,33 +62,33 @@ class BrokenPow(Fittable1DModel):
     def evaluate_with_derivatives(...):
         ...
     """
-    
+
     @staticmethod
     def evaluate(x, ind1, ind2, norm, rbreak, jump, const):
-        print("evaluate bknpow - start time: ", str(datetime.now()))
+#        print("evaluate bknpow - start time: ", str(datetime.now()))
         if not isinstance(x, (int, float)):
             sx = np.zeros_like(x)
             for i in range(len(sx)):
-                sx[i] = BrokenPow.evaluate_one(x[i], ind1, ind2, norm, rbreak, jump)
+                sx[i] = bknpow_def.evaluate_one(x[i], ind1, ind2, norm, rbreak, jump)
         else:
-            sx = BrokenPow.evaluate_one(x, ind1, ind2, norm, rbreak, jump)
-        print("evaluate bknpow - start time: ", str(datetime.now()))
+            sx = bknpow_def.evaluate_one(x, ind1, ind2, norm, rbreak, jump)
+#        print("evaluate bknpow - start time: ", str(datetime.now()))
         return sx+const
 
-    @staticmethod
-    def evaluate_one(xval, ind1, ind2, norm, rbreak, jump):
-        norm_after_jump = norm / jump**2
-        if xval <= rbreak:
-            return norm * scipy.integrate.quad(lambda z:
-                               ((xval**2 + z**2) / rbreak**2)**(-ind1),
-                               1e-4, np.sqrt(rbreak**2 - xval**2))[0] + \
-                    norm_after_jump * scipy.integrate.quad(lambda z:
-                               ((xval**2 + z**2) / rbreak**2)**(-ind2),
-                               np.sqrt(rbreak**2 - xval**2), 1e4)[0]
-        else:
-            return norm_after_jump * scipy.integrate.quad(lambda z:
-                               ((xval**2 + z**2) / rbreak**2)**(-ind2),
-                                1e-4, 1e4)[0]
+    # @staticmethod
+    # def evaluate_one(xval, ind1, ind2, norm, rbreak, jump):
+    #     norm_after_jump = norm / jump**2
+    #     if xval <= rbreak:
+    #         return norm * scipy.integrate.quad(lambda z:
+    #                            ((xval**2 + z**2) / rbreak**2)**(-ind1),
+    #                            1e-4, np.sqrt(rbreak**2 - xval**2))[0] + \
+    #                 norm_after_jump * scipy.integrate.quad(lambda z:
+    #                            ((xval**2 + z**2) / rbreak**2)**(-ind2),
+    #                            np.sqrt(rbreak**2 - xval**2), 1e4)[0]
+    #     else:
+    #         return norm_after_jump * scipy.integrate.quad(lambda z:
+    #                            ((xval**2 + z**2) / rbreak**2)**(-ind2),
+    #                             1e-4, 1e4)[0]
 
     @staticmethod
     def fit_deriv(x, ind1, ind2, norm, rbreak, jump, const):
