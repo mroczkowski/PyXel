@@ -60,9 +60,9 @@ def cstat(measured_raw_cts, updated_model, measured_bkg_cts, t_raw, t_bkg, x):
     .. [2] Wachter, K., Leach, R., Kellogg, E. (1979), "Parameter estimation
            in X-ray astronomy using maximum likelihood", ApJ, 230, p. 274-287
     """
-    start = datetime.now()
+#    start = datetime.now()
     model_vals = updated_model(x)
-    print(updated_model.parameters)
+    #print(updated_model.parameters)
 
     # Some of these calculations are used often, so they are done only once
     # here to speed up the code.
@@ -93,6 +93,5 @@ def cstat(measured_raw_cts, updated_model, measured_bkg_cts, t_raw, t_bkg, x):
                     - measured_bkg_cts[i] * np.log(t_bkg[i] * f[i]) - \
                     measured_raw_cts[i] * (1 - np.log(measured_raw_cts[i])) - \
                     measured_bkg_cts[i] * (1 - np.log(measured_bkg_cts[i]))
-    print('cash ==>', 2.*cash)
-    print("cstat eval - end time: ", str(datetime.now() - start))
+    #print('cash ==>', 2.*cash)
     return 2. * cash

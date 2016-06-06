@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+from multiprocessing import Pool
 
 from astropy.modeling.fitting import Fitter
 
@@ -16,6 +17,16 @@ from astropy.modeling.fitting import (_validate_model,
                                       _model_to_fit_params, Fitter,
                                       _convert_input)
 from astropy.modeling.utils import get_inputs_and_params
+
+def lnprob(mc_params, model, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x):
+    _fitter_to_model_params(model, mc_params)
+    lnp = 0. # TODO: evaluate prior based on bounds
+    lnc = cstat(measured_raw_cts, model, measured_bkg_cts, t_raw, t_bkg, x)
+    return lnp - lnc
+
+# def lnprob_int(...):
+#     model = IntModel(...)
+#     return lnprob(...)
 
 class CstatFitter(Fitter):
     """
@@ -44,7 +55,10 @@ class CstatFitter(Fitter):
         super(CstatFitter, self).__init__(opt_func, statistic=cstat)
 
     def __call__(self, model, x, measured_raw_cts, measured_bkg_cts,
-                 t_raw, t_bkg, **kwargs):
+                 t_raw, t_bkg, x_err=None, **kwargs):
+        if x_err is not None:
+            model = IntModel(model.__class__)(x_err, *model.parameters)
+
         model_copy = _validate_model(model,
                                      self.supported_constraints)
         farg = _convert_input(x, measured_raw_cts)
@@ -85,17 +99,13 @@ class CstatFitter(Fitter):
         pos = [params + 1e-4 * np.random.randn(ndim) * params
                for i in range(nwalkers)]
 
-        def lnprob(mc_params, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x):
-            _fitter_to_model_params(model_copy, mc_params)
-            lnp = 0. # TODO: evaluate prior based on bounds
-            lnc = cstat(measured_raw_cts, model_copy, measured_bkg_cts, t_raw, t_bkg, x)
-            return lnp - lnc
-
         if not os.path.isfile(chain_filename) or clobber_chain:
-            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
-                                            args=(measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2,
+                                            args=(model_copy, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
             sampler.run_mcmc(pos, nruns)
             samples = sampler.chain[:, nburn:, :].reshape((-1, ndim))
+
+            #samples = np.array(result).reshape((-1, ndim))
             if save_chain:
                 with open(chain_filename, 'wb') as f:
                     pickle.dump(samples, f)

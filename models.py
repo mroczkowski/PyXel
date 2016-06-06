@@ -1,30 +1,53 @@
 import numpy as np
+#import numpy.polynomial.legendre
 import scipy.integrate
-from astropy.modeling import Fittable1DModel, Parameter
+from astropy.modeling import Fittable1DModel, Parameter, Model
 from scipy import integrate
 from datetime import datetime
 import bknpow_def
+import os
 
 def IntModel(model_cls):
     class MyIntModel(model_cls):
-        def __init__(self, widths, *args, **kwargs):
+        def __init__(self, widths, order=5, *args, **kwargs):
             self._widths = widths
+            self._roots, self._weights = np.polynomial.legendre.leggauss(order)
             super(MyIntModel, self).__init__(*args, **kwargs)
+
+        def __getnewargs__(self):
+            return (model_cls,)
+
+        def __getstate__(self):
+            print(os.getpid())
+            return (model_cls, super(MyIntModel, self).__dict__)
+
+        def __setstate__(self, state):
+            cls, attributes = state
+            obj = cls.__new__(cls)
+            self.__dict__.update(attributes)
+            return obj
+            #print(os.getpid())
+            #print(model_cls, os.getpid())
+            #return None
+
+        def evaluate_for_integral(self, fn, a, b, *params):
+            return (b - a) / 2.0 * np.array(fn((b - a) / 2.0 * self._roots + (a + b) / 2.0, *params))
 
         def evaluate(self, x, *params):
             fn = super(MyIntModel, self).evaluate
 
-            result = np.array([integrate.quad(lambda r: fn(r, *params), d - dw, d + dw)[0] / (2.*dw)
-                               for d, dw in zip(x, self._widths)])
+            # Gauss-Legendre integration
+            sample_points = np.array([self.evaluate_for_integral(fn, d - dw, d + dw, *params) / (2.*dw)
+                                      for d, dw in zip(x, self._widths)])
+            result = np.sum(self._weights * sample_points, axis=1)
             return result
 
         def fit_deriv(self, x, *params):
             fn = super(MyIntModel, self).fit_deriv
 
-            result = [np.array([integrate.quad(lambda r: fn(r, *params)[i], d - dw, d + dw)[0] / (2.*dw)
-                                for d, dw in zip(x, self._widths)])
-                      for i in range(len(params))]
-
+            sample_points = np.array([self.evaluate_for_integral(fn, d - dw, d + dw, *params) / (2.*dw)
+                                      for d, dw in zip(x, self._widths)])
+            result = np.sum(self._weights * sample_points, axis=2).T
             return result
 
     return MyIntModel
@@ -69,26 +92,26 @@ class BrokenPow(Fittable1DModel):
         if not isinstance(x, (int, float)):
             sx = np.zeros_like(x)
             for i in range(len(sx)):
-                sx[i] = bknpow_def.evaluate_one(x[i], ind1, ind2, norm, rbreak, jump)
+                sx[i] = BrokenPow.evaluate_one(x[i], ind1, ind2, norm, rbreak, jump)
         else:
-            sx = bknpow_def.evaluate_one(x, ind1, ind2, norm, rbreak, jump)
+            sx = BrokenPow.evaluate_one(x, ind1, ind2, norm, rbreak, jump)
 #        print("evaluate bknpow - start time: ", str(datetime.now()))
         return sx+const
 
-    # @staticmethod
-    # def evaluate_one(xval, ind1, ind2, norm, rbreak, jump):
-    #     norm_after_jump = norm / jump**2
-    #     if xval <= rbreak:
-    #         return norm * scipy.integrate.quad(lambda z:
-    #                            ((xval**2 + z**2) / rbreak**2)**(-ind1),
-    #                            1e-4, np.sqrt(rbreak**2 - xval**2))[0] + \
-    #                 norm_after_jump * scipy.integrate.quad(lambda z:
-    #                            ((xval**2 + z**2) / rbreak**2)**(-ind2),
-    #                            np.sqrt(rbreak**2 - xval**2), 1e4)[0]
-    #     else:
-    #         return norm_after_jump * scipy.integrate.quad(lambda z:
-    #                            ((xval**2 + z**2) / rbreak**2)**(-ind2),
-    #                             1e-4, 1e4)[0]
+    @staticmethod
+    def evaluate_one(xval, ind1, ind2, norm, rbreak, jump):
+        norm_after_jump = norm / jump**2
+        if xval <= rbreak:
+            return norm * scipy.integrate.quad(lambda z:
+                               ((xval**2 + z**2) / rbreak**2)**(-ind1),
+                               1e-4, np.sqrt(rbreak**2 - xval**2))[0] + \
+                    norm_after_jump * scipy.integrate.quad(lambda z:
+                               ((xval**2 + z**2) / rbreak**2)**(-ind2),
+                               np.sqrt(rbreak**2 - xval**2), 1e4)[0]
+        else:
+            return norm_after_jump * scipy.integrate.quad(lambda z:
+                               ((xval**2 + z**2) / rbreak**2)**(-ind2),
+                                1e-4, 1e4)[0]
 
     @staticmethod
     def fit_deriv(x, ind1, ind2, norm, rbreak, jump, const):
