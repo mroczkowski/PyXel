@@ -30,7 +30,7 @@ def bin_pix2arcmin(bin_values, pix2arcmin):
     """Convert rates and associated uncertainties from per pixel to
     per arcmin**2 units, and calculate exposure time equivalents for
     source and background observations."""
-    bin_radius, bin_width, raw_cts, net_cts,  
+    bin_radius, bin_width, raw_cts, net_cts, \
         bkg_cts, raw_rate, err_raw_rate, \
         net_rate, err_net_rate, bkg_rate, err_bkg_rate = bin_values
     bin_radius, bin_width = [i * pix2arcmin for i in [bin_radius, bin_width]]
