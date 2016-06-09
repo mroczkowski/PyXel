@@ -100,7 +100,7 @@ class Region(object):
                 bkg_cts += bkg_img_data[i][j, k]
                 exp_raw += exp_val
                 exp_bkg += exp_val_bkg / bkgnorm
-            net_cts = raw_cts - bkg_cts * bkg_corr_i
+                net_cts += counts_img_data[i][j, k] - bkg_img_data[i][j, k] * bkg_corr_i
         if only_net_cts:
             return net_cts
         raw_rate = raw_cts / exp_raw
