@@ -16,7 +16,6 @@ from astropy.modeling.fitting import (_validate_model,
                                       _fitter_to_model_params,
                                       _model_to_fit_params, Fitter,
                                       _convert_input)
-from astropy.modeling.utils import get_inputs_and_params
 
 def lnprob(mc_params, model, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x):
     _fitter_to_model_params(model, mc_params)
@@ -100,7 +99,7 @@ class CstatFitter(Fitter):
                for i in range(nwalkers)]
 
         if not os.path.isfile(chain_filename) or clobber_chain:
-            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=2,
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=8,
                                             args=(model_copy, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
             sampler.run_mcmc(pos, nruns)
             samples = sampler.chain[:, nburn:, :].reshape((-1, ndim))

@@ -4,7 +4,6 @@ import scipy.integrate
 from astropy.modeling import Fittable1DModel, Parameter, Model
 from scipy import integrate
 from datetime import datetime
-import bknpow_def
 import os
 
 def IntModel(model_cls):
