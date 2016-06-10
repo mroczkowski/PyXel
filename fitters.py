@@ -19,6 +19,9 @@ from astropy.modeling.fitting import (_validate_model,
 
 def lnprob(mc_params, model, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x):
     _fitter_to_model_params(model, mc_params)
+    for param_name in model.param_names:
+        param = getattr(model, param_name)
+        print(param_name, param.value, param.min, param.max)
     lnp = 0. # TODO: evaluate prior based on bounds
     lnc = cstat(measured_raw_cts, model, measured_bkg_cts, t_raw, t_bkg, x)
     return lnp - lnc
