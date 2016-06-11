@@ -17,18 +17,18 @@ from astropy.modeling.fitting import (_validate_model,
                                       _model_to_fit_params, Fitter,
                                       _convert_input)
 
-def lnprob(mc_params, model, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x):
+def lnprob(mc_params, model, bounds, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x):
+    min_bounds, max_bounds = bounds
+    for value, min_bound, max_bound in zip(mc_params, min_bounds, max_bounds):
+        if not np.isnan(min_bound) and value < min_bound:
+            return -np.inf
+        if not np.isnan(max_bound) and value > max_bound:
+            return -np.inf
+
     _fitter_to_model_params(model, mc_params)
-    for param_name in model.param_names:
-        param = getattr(model, param_name)
-        print(param_name, param.value, param.min, param.max)
     lnp = 0. # TODO: evaluate prior based on bounds
     lnc = cstat(measured_raw_cts, model, measured_bkg_cts, t_raw, t_bkg, x)
     return lnp - lnc
-
-# def lnprob_int(...):
-#     model = IntModel(...)
-#     return lnprob(...)
 
 class CstatFitter(Fitter):
     """
@@ -97,13 +97,22 @@ class CstatFitter(Fitter):
         model_copy = _validate_model(model,
                                      self.supported_constraints)
         params, _ = _model_to_fit_params(model_copy)
+
+        # Get bounds
+        bounds_model = model.copy()
+        bounds_model.parameters = [bounds_model.bounds[name][0] for name in bounds_model.param_names]
+        min_bounds, _ = _model_to_fit_params(bounds_model)
+        bounds_model.parameters = [bounds_model.bounds[name][1] for name in bounds_model.param_names]
+        max_bounds, _ = _model_to_fit_params(bounds_model)
+
         ndim = len(params)
         pos = [params + 1e-4 * np.random.randn(ndim) * params
                for i in range(nwalkers)]
 
         if not os.path.isfile(chain_filename) or clobber_chain:
             sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, threads=8,
-                                            args=(model_copy, measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
+                                            args=(model_copy, (min_bounds, max_bounds),
+                                                  measured_raw_cts, measured_bkg_cts, t_raw, t_bkg, x))
             sampler.run_mcmc(pos, nruns)
             samples = sampler.chain[:, nburn:, :].reshape((-1, ndim))
 
@@ -116,19 +125,24 @@ class CstatFitter(Fitter):
                 samples = pickle.load(f)
 
         par_names = model_copy.param_names
+        free_par_names = []
+        for par_name in par_names:
+            is_fixed = getattr(model_copy, par_name).fixed
+            if not is_fixed:
+                free_par_names.append(par_name)
         if with_corner:
             if os.path.isfile(corner_filename) and not clobber_corner:
                 raise Exception("Corner plot already exists and clobber_corner=False.")
             else:
-                fig = corner.corner(samples, labels=par_names, bins=[20]*ndim)
+                fig = corner.corner(samples, labels=free_par_names, bins=[20]*ndim)
                 fig.savefig(corner_filename, dpi=corner_dpi)
         lim_lower = 50. - cl / 2.
         lim_upper = 50. + cl / 2.
 
-        val_with_errs = [(v[1], v[2]-v[1], v[1]-v[0])
+        val_with_errs = [(v[1], v[1]-v[0], v[2]-v[1])
                          for v in zip(*np.percentile(samples,
                                       [lim_lower, 50., lim_upper], axis=0))]
-        fit_data = [[par_names[i], val_with_errs[i][0], -val_with_errs[i][1],
+        fit_data = [[free_par_names[i], val_with_errs[i][0], -val_with_errs[i][1],
                      val_with_errs[i][2]] for i in range(len(val_with_errs))]
 
         print('\n'*2)
