@@ -1,6 +1,6 @@
 # PyXel
 
-PyXel is a Python package for modeling astronomical X-ray imaging data. It provides methods for modeling surface brightness profiles from X-ray satellites using a variety of models and statistics.
+`PyXel` is a Python package for modeling astronomical X-ray imaging data. It provides methods for modeling surface brightness profiles from X-ray satellites using a variety of models and statistics.
 
 To install, clone the repository:
 
