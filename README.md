@@ -18,3 +18,9 @@ Running PyXel requires Python 3, and the following packages:
 * `emcee >= 2.1`
 * `corner >= 1.0.2`
 * `tabulate >= 0.7.5`
+
+License
+-------
+
+`PyXel` is released under a [GPLv3 license](https://github.com/gogrean/PyXel/blob/master/LICENSE.txt).
+
