@@ -1,38 +1,6 @@
-from astropy.io import fits
-import numpy as np
-
+from .image import Image
 from .box import Box
 from .epanda import Epanda
-from .utils import clean_header
-
-class Image():
-    def __init__(self, filename, ext=0):
-        """Return a FITS image and the associated header.
-
-        The image is returned as a numpy array. By default, the first HDU is read.
-        A different HDU can be specified with the argument 'ext'. The header of the
-        image is modified to remove unncessary keywords such as HISTORY and COMMENT,
-        as well as keywords associated with a 3rd and 4th dimension (e.g. NAXIS3,
-        NAXIS4).
-        """
-        if not isinstance(filename, list):
-            img_hdu = fits.open(filename)
-            self.data = img_hdu[ext].data
-            self.hdr = clean_header(img_hdu[ext].header)
-        else:
-            img_hdr = []
-            img_data = []
-            if ext == 0:
-                ext = [ext] * len(filename)
-            elif len(ext) != len(filename):
-                raise IndexError('Length of the extension array must match \
-                    number of images.')
-            for i in range(len(filename)):
-                img_hdu = fits.open(filename[i])
-                img_data.append(img_hdu[ext[i]].data)
-                img_hdr.append(clean_header(img_hdu[ext[i]].header))
-            self.data = img_data
-            self.hdr = img_hdr
 
 def read_shape(data):
     """Get region shape and parameters.

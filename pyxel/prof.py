@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from .utils import rotate_point, bin_pix2arcmin, get_bkg_exp
 from .messages import ErrorMessages
-from .load_data import Image
+from .image import Image
 
 class Region(object):
 

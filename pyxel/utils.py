@@ -1,24 +1,6 @@
 import numpy as np
 
-from .load_data import Image
-
-def clean_header(hdr):
-    """Remove unwanted keywords from the image header.
-
-    Deletes from the image header unncessary keywords such as HISTORY and
-    COMMENT, as well as keywords associated with a 3rd and 4th dimension
-    (e.g. NAXIS3, NAXIS4). Some radio images are 4D, but the 3rd and 4th
-    dimensions are not necessary for plotting the brightness and may
-    occasionally cause problems.
-    """
-    forbidden_keywords = {'HISTORY', 'COMMENT', 'NAXIS3', 'NAXIS4',
-        'CTYPE3', 'CTYPE4', 'CRVAL3', 'CRVAL4', 'CDELT3', 'CDELT4',
-        'CRPIX3', 'CRPIX4', 'CUNIT3', 'CUNIT4'}
-    existing_keywords = [key for key in forbidden_keywords if key in hdr]
-    if any(existing_keywords):
-        for key in existing_keywords:
-            del hdr[key]
-    return hdr
+from .image import Image
 
 def rotate_point(x0, y0, x, y, angle):
     """Rotate point (x,y) counter-clockwise around (x0,y0)."""
