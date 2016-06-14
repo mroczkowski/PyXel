@@ -10,6 +10,10 @@ and then install the package with `pip`:
 
 `pip install <your_path_to_pyxel>`
 
+or:
+
+`python <your_path_to_pyxel>/setup.py install`
+
 Running PyXel requires Python 3, and the following packages:
 * `astropy >= 1.1.2`
 * `matplotlib >= 1.5.1`
