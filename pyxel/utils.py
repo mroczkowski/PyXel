@@ -24,8 +24,8 @@ def bin_pix2arcmin(bin_values, pix2arcmin):
         t_bkg = bkg_cts / bkg_rate
     else:
         t_bkg = 0.
-    return (bin_radius, bin_width, raw_cts, net_cts,  
-            bkg_cts, raw_rate, err_raw_rate, net_rate, err_net_rate, 
+    return (bin_radius, bin_width, raw_cts, net_cts,
+            bkg_cts, raw_rate, err_raw_rate, net_rate, err_net_rate,
             bkg_rate, err_bkg_rate, t_raw, t_bkg)
 
 def get_bkg_exp(counts_img, bkg_img, exp_img):

@@ -89,7 +89,7 @@ class Epanda(Region):
         y_min_bound = ceil(self.y0 - self.major_axis)
         y_max_bound = ceil(self.y0 + self.major_axis)
 
-        for x in range(max(0, x_min_bound), min(x_max_bound+1, width):
+        for x in range(max(0, x_min_bound), min(x_max_bound+1, width)):
             for y in range(max(0, y_min_bound), min(y_max_bound+1, length)):
                 x_rel = x - self.x0
                 y_rel = y - self.y0
