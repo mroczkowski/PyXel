@@ -84,8 +84,16 @@ class Region(object):
                     bkgnorm = 1.
                 else:
                     bkgnorm = bkg_img_hdr[i]['BKGNORM']
-                bkg_corr_i = counts_img_hdr[i]['EXPOSURE'] * bkgnorm / \
-                    bkg_img_hdr[i]['EXPOSURE']
+                if 'EXPOSURE' in bkg_img_hdr[i]:
+                    bkg_img_exp = bkg_img_hdr[i]['EXPOSURE']
+                else:
+                    bkg_img_exp = bkg_img_hdr[i]['ONTIME']
+                if 'EXPOSURE' in counts_img_hdr[i]:
+                    cts_img_exp = counts_img_hdr[i]['EXPOSURE']
+                else:
+                    cts_img_exp = counts_img_hdr[i]['ONTIME']
+                bkg_corr_i = cts_img_exp * bkgnorm / \
+                    bkg_img_exp
             else:
                 bkg_corr_i = bkg_corr[i]
                 bkgnorm = 1.
@@ -95,8 +103,8 @@ class Region(object):
                     continue
                 exp_val = exp_img_data[i][j, k]
                 exp_val_bkg = exp_img_data[i][j, k] * \
-                              bkg_img_hdr[i]['EXPOSURE'] / \
-                              counts_img_hdr[i]['EXPOSURE']
+                              bkg_img_exp / \
+                              cts_img_exp
                 raw_cts += counts_img_data[i][j, k]
                 bkg_cts += bkg_img_data[i][j, k]
                 exp_raw += exp_val
@@ -117,7 +125,7 @@ class Region(object):
                    min_counts, islog=True):
         bkg_img, exp_img = get_bkg_exp(counts_img, bkg_img, exp_img)
         edges = self.make_edges(islog)
-        pixels_in_bins = self.distribute_pixels(edges)
+        pixels_in_bins = self.distribute_pixels(edges, counts_img.data.shape[0], counts_img.data.shape[1])
         nbins = len(edges) - 1
         npix = len(pixels_in_bins)
         bins = []

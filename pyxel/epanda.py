@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from math import floor, ceil
 
 import numpy as np
@@ -76,7 +78,7 @@ class Epanda(Region):
     def make_edges(self, islog):
         return get_edges(self.major_axis, islog)
 
-    def distribute_pixels(self, edges):
+    def distribute_pixels(self, edges, width, length):
         """Find the pixels inside an elliptical sector annulus.
 
         Returns an array of tuples containing the coordinates (row, col) of the
@@ -89,17 +91,17 @@ class Epanda(Region):
         y_min_bound = ceil(self.y0 - self.major_axis)
         y_max_bound = ceil(self.y0 + self.major_axis)
 
-        for x in range(x_min_bound, x_max_bound+1):
-            for y in range(y_min_bound, y_max_bound+1):
+        print(x_min_bound, x_max_bound, y_min_bound, y_max_bound, width, length)
+
+        for x in range(max(0, x_min_bound), min(x_max_bound+1, length)):
+            for y in range(max(0, y_min_bound), min(y_max_bound+1, width)):
+                if len(pixels) % 100000 == 1:
+                    start_time = datetime.now()
                 x_rel = x - self.x0
                 y_rel = y - self.y0
                 x_rot_back, y_rot_back = rotate_point(self.x0, self.y0,
                                                       x_rel, y_rel,
                                                       -self.rot_angle)
-                outer_ellipse_eq = [(x_rot_back - self.x0)**2 / edges[i]**2 +
-                                    (y_rot_back - self.y0)**2 / edges[i]**2 *
-                                    self.major_axis**2 / self.minor_axis**2
-                                    for i in range(1,len(edges))]
                 if x_rot_back - self.x0 >= 0:
                     r = np.sqrt((x_rot_back - self.x0)**2 + \
                                 (y_rot_back - self.y0)**2)
@@ -113,9 +115,15 @@ class Epanda(Region):
                     xy_angle = np.arctan((y_rot_back - self.y0) /
                                          (x_rot_back - self.x0)) + np.pi
                 if self.start_angle <= xy_angle <= self.end_angle:
+                    outer_ellipse_eq = [(x_rot_back - self.x0)**2 / edges[i]**2 +
+                                        (y_rot_back - self.y0)**2 / edges[i]**2 *
+                                        self.major_axis**2 / self.minor_axis**2
+                                        for i in range(1,len(edges))]
                     for i, eq in enumerate(outer_ellipse_eq[1:]):
                         if eq < 1:
                             pixels.append((y, x, i))
+                            if len(pixels) % 100000 == 0:
+                                print(len(pixels))
+                                print((datetime.now() - start_time).seconds)
                             break
-
         return pixels
