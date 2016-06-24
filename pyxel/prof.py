@@ -30,6 +30,7 @@ class Region(object):
             else:
                 bkg_img_data.append(bkg_img)
                 bkg_corr = [1.]
+                bkg_img_hdr = None
 
             if isinstance(exp_img, Image):
                 if isinstance(exp_img.data, list):
@@ -71,6 +72,7 @@ class Region(object):
             else:
                 bkg_img_data = bkg_img
                 bkg_corr = [1.] * len(counts_img_data)
+                bkg_img_hdr = None
 
         raw_cts, net_cts, bkg_cts = 0., 0., 0.
         raw_rate, net_rate, bkg_rate = 0., 0., 0.
@@ -79,13 +81,22 @@ class Region(object):
         exp_raw = 0.
         exp_bkg = 0.
         for i in range(len(counts_img_data)):
+            if 'EXPOSURE' in counts_img_hdr[i]:
+                counts_img_exp = counts_img_hdr[i]['EXPOSURE']
+            elif 'ONTIME' in counts_img_hdr[i]:
+                counts_img_exp = counts_img_hdr[i]['ONTIME']
+            if bkg_img_hdr is not None:
+                if 'EXPOSURE' in bkg_img_hdr[i]:
+                    bkg_img_exp = bkg_img_hdr[i]['EXPOSURE']
+                elif 'ONTIME' in bkg_img_hdr[i]:
+                    bkg_img_exp = bkg_img_hdr[i]['ONTIME']
+
             if not bkg_corr[i]:
                 if not 'BKGNORM' in bkg_img_hdr[i]:
                     bkgnorm = 1.
                 else:
                     bkgnorm = bkg_img_hdr[i]['BKGNORM']
-                bkg_corr_i = counts_img_hdr[i]['EXPOSURE'] * bkgnorm / \
-                    bkg_img_hdr[i]['EXPOSURE']
+                bkg_corr_i = counts_img_exp * bkgnorm / bkg_img_exp
             else:
                 bkg_corr_i = bkg_corr[i]
                 bkgnorm = 1.
@@ -95,8 +106,7 @@ class Region(object):
                     continue
                 exp_val = exp_img_data[i][j, k]
                 exp_val_bkg = exp_img_data[i][j, k] * \
-                              bkg_img_hdr[i]['EXPOSURE'] / \
-                              counts_img_hdr[i]['EXPOSURE']
+                              bkg_img_exp / counts_img_exp
                 raw_cts += counts_img_data[i][j, k]
                 bkg_cts += bkg_img_data[i][j, k]
                 exp_raw += exp_val
@@ -117,7 +127,9 @@ class Region(object):
                    min_counts, islog=True):
         bkg_img, exp_img = get_bkg_exp(counts_img, bkg_img, exp_img)
         edges = self.make_edges(islog)
-        pixels_in_bins = self.distribute_pixels(edges)
+        pixels_in_bins = self.distribute_pixels(edges,
+                                                counts_img.data.shape[0],
+                                                counts_img.data.shape[1])
         nbins = len(edges) - 1
         npix = len(pixels_in_bins)
         bins = []
@@ -207,8 +219,8 @@ class Region(object):
                                       current_bin[2])
             bin_radius = (current_bin[0] + current_bin[1]) / 2.
             bin_width = current_bin[1] - bin_radius
-            bin_values = (bin_radius, bin_width, raw_cts, 
-                          net_cts, bkg_cts, 
+            bin_values = (bin_radius, bin_width, raw_cts,
+                          net_cts, bkg_cts,
                           raw_rate, err_raw_rate, net_rate, err_net_rate,
                           bkg_rate, err_bkg_rate)
             bin_values = bin_pix2arcmin(bin_values, pix2arcmin)

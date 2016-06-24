@@ -40,7 +40,7 @@ class Box(Region):
     def make_edges(self, islog):
         return get_edges(self.height, islog)
 
-    def distribute_pixels(self, edges):
+    def distribute_pixels(self, edges, length, width):
         corners = self.get_corners()
         reg_path = Path(corners)
         # Get region boundaries.
@@ -52,8 +52,8 @@ class Box(Region):
         x_max_bound = ceil(x_max_bound)
         y_max_bound = ceil(y_max_bound)
         pixels_in_bins = []
-        for x in range(x_min_bound, x_max_bound+1):
-            for y in range(y_min_bound, y_max_bound+1):
+        for x in range(max(0, x_min_bound), min(x_max_bound+1, width)):
+            for y in range(max(0, y_min_bound), min(y_max_bound+1, length)):
                 if reg_path.contains_point((x, y)):
                     x_nonrotated, y_nonrotated = rotate_point(self.x0, self.y0,
                                                               x - self.x0,
