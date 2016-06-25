@@ -127,9 +127,14 @@ class Region(object):
                    min_counts, islog=True):
         bkg_img, exp_img = get_bkg_exp(counts_img, bkg_img, exp_img)
         edges = self.make_edges(islog)
-        pixels_in_bins = self.distribute_pixels(edges,
-                                                counts_img.data.shape[0],
-                                                counts_img.data.shape[1])
+        if isinstance(counts_img.data, list):
+            pixels_in_bins = self.distribute_pixels(edges,
+                                                    counts_img.data[0].shape[0],
+                                                    counts_img.data[0].shape[1])
+        else:
+            pixels_in_bins = self.distribute_pixels(edges,
+                                                    counts_img.data.shape[0],
+                                                    counts_img.data.shape[1]) 
         nbins = len(edges) - 1
         npix = len(pixels_in_bins)
         bins = []
