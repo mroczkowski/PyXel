@@ -4,7 +4,25 @@ import numpy as np
 import scipy.integrate
 from astropy.modeling import Fittable1DModel, Parameter, Model
 
-def IntModel(model_cls):
+# class IntModelMeta(_ModelMeta):
+#     def __getattr__(cls, name):
+#         # TODO
+#         pass
+#
+# @six.add_metaclass(IntModelMeta)
+# class IntModel(_Model):
+#     def __init__(self, underlying, widths, order=5):
+#         self._underlying = underlying
+#         self._widths = widths
+#         self._order = order
+
+# IntModel(Beta)(params, ...)
+#
+# beta = Beta(...)
+# intbeta = IntModel(beta, params)
+
+def IntModel(model, widths, order=5):
+    model_cls = model.__class__
     class MyIntModel(model_cls):
         def __init__(self, widths, order=5, *args, **kwargs):
             self._widths = widths
@@ -47,7 +65,9 @@ def IntModel(model_cls):
             result = np.sum(self._weights * sample_points, axis=2).T
             return result
 
-    return MyIntModel
+    params = {param_name: getattr(model, param_name).value
+              for param_name in model.param_names}
+    return MyIntModel(widths, order, **params)
 
 class Beta(Fittable1DModel):
     s0 = Parameter(default = 1e-2, min = 1e-12)
