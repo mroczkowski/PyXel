@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pyxel',
-      version='0.1.0',
+      version='0.1.1',
       description='Astronomical X-ray Image Analysis Package',
       author='Georgiana Ogrean',
       author_email='georgiana.ogrean@gmail.com',
