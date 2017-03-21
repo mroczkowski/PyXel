@@ -6,7 +6,6 @@
 #
 # Change log:
 
-import pyfits
 import numpy as np
 from SurfMessages import *
 
