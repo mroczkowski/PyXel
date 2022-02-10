@@ -94,7 +94,7 @@ def merge_subpixel_bins(edges):
 
 def get_edges(max_r, islog):
     if not islog:
-        nbins = np.round(max_r)
+        nbins = int(np.round(max_r))
         # Below, nbins+1 is used because the code gets edges, not
         # bin centers. For nbins there will be nbins+1 edges
         return list(np.linspace(0., max_r, nbins + 1))
