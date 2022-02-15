@@ -97,7 +97,7 @@ def get_edges(max_r, islog):
         nbins = np.round(max_r)
         # Below, nbins+1 is used because the code gets edges, not
         # bin centers. For nbins there will be nbins+1 edges
-        return list(np.linspace(0., max_r, nbins + 1))
+        return list(np.linspace(0., max_r, int(nbins + 1)))
     else:
         # If the bins are simply distributed logarithmically such that the
         # smallest bin has a width of at least 1 pixel, one ends up with an
@@ -110,7 +110,7 @@ def get_edges(max_r, islog):
         min_r = 1.   # to avoid log(0)
         # Below, nbins+1 is used because the code gets edges, not
         # bin centers. For nbins there will be nbins+1 edges.
-        edges = np.logspace(np.log10(min_r), np.log10(max_r), nbins + 1)
+        edges = np.logspace(np.log10(min_r), np.log10(max_r), int(nbins + 1))
         # Inserts the 0 edge back into the array of edges.
         edges = list(np.insert(edges, 0, 0.))
         return merge_subpixel_bins(edges)
